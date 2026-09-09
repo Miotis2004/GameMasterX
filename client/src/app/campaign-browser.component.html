@@ -1,0 +1,51 @@
+<section class="browser">
+  <header class="browser-header">
+    <div>
+      <h2>Campaigns</h2>
+      <p class="muted">The campaigns available to you.</p>
+    </div>
+    <nav class="actions">
+      <a class="btn" routerLink="/join">Join a campaign</a>
+      <a class="btn btn-primary" routerLink="/create">Create campaign</a>
+    </nav>
+  </header>
+
+  <form [formGroup]="filterForm" class="filter">
+    <label for="status-filter">
+      Filter by status
+      <select id="status-filter" formControlName="status">
+        <option *ngFor="let option of statusOptions" [value]="option.value">
+          {{ option.label }}
+        </option>
+      </select>
+    </label>
+  </form>
+
+  <div *ngIf="loading()" class="state">Loading campaigns&hellip;</div>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+
+  <section *ngIf="!loading() && !error() && campaigns().length === 0" class="state empty">
+    <p>No campaigns match the current filter.</p>
+    <a class="btn btn-primary" routerLink="/create">Create your first campaign</a>
+  </section>
+
+  <ul *ngIf="!loading() && !error() && campaigns().length > 0" class="campaign-list">
+    <li *ngFor="let campaign of campaigns()" class="campaign-card">
+      <a class="campaign-link" [routerLink]="['/dashboard']">
+        <h3>{{ campaign.name }}</h3>
+        <p class="muted">
+          <span class="badge">{{ campaign.status }}</span>
+          <span>{{ campaign.maxPlayers }} player{{ campaign.maxPlayers === 1 ? '' : 's' }}</span>
+          <span *ngIf="campaign.gameSystem">· {{ campaign.gameSystem }}</span>
+        </p>
+      </a>
+      <a class="campaign-link members-link" [routerLink]="['/campaigns', campaign.id, 'members']">
+        Manage members
+      </a>
+    </li>
+  </ul>
+</section>

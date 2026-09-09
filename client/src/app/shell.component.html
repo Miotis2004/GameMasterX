@@ -1,0 +1,17 @@
+<app-status-bar></app-status-bar>
+<div class="shell">
+  <header>
+    <h1>GameMasterX</h1>
+    <nav>
+      <a routerLink="/dashboard">Dashboard</a>
+      <a routerLink="/campaigns">Campaigns</a>
+      <a routerLink="/adventures">Adventures</a>
+      <a routerLink="/join">Join</a>
+      <a routerLink="/create">Create</a>
+      <button (click)="logout()">Logout</button>
+    </nav>
+  </header>
+  <main>
+    <router-outlet></router-outlet>
+  </main>
+</div>

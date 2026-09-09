@@ -1,0 +1,67 @@
+<section class="create-campaign">
+  <h2>Create a campaign</h2>
+  <p class="muted">Start a new campaign. You will be granted the OWNER role.</p>
+
+  <div *ngIf="created() as campaignResult" class="state success">
+    <p>Campaign <strong>{{ campaignResult.name }}</strong> created.</p>
+    <a class="btn btn-primary" routerLink="/dashboard">Go to dashboard</a>
+  </div>
+
+  <form *ngIf="!created()" [formGroup]="form" (ngSubmit)="submit()">
+    <label>
+      Name
+      <input type="text" formControlName="name" />
+    </label>
+    <span *ngIf="form.get('name')?.touched && form.get('name')?.invalid" class="field-error">
+      <em *ngIf="form.get('name')?.errors?.['required']">Name is required.</em>
+      <em *ngIf="form.get('name')?.errors?.['maxLength']">Name must not exceed 100 characters.</em>
+    </span>
+
+    <label>
+      Description
+      <textarea type="text" formControlName="description" rows="4"></textarea>
+    </label>
+    <span *ngIf="form.get('description')?.touched && form.get('description')?.invalid" class="field-error">
+      <em>Name must not exceed 5000 characters.</em>
+    </span>
+
+    <label>
+      Game system
+      <input type="text" formControlName="gameSystem" />
+    </label>
+    <span *ngIf="form.get('gameSystem')?.touched && form.get('gameSystem')?.invalid" class="field-error">
+      <em>Game system must not exceed 100 characters.</em>
+    </span>
+
+    <label>
+      Status
+      <select formControlName="status">
+        <option value="DRAFT">Draft</option>
+        <option value="OPEN">Open</option>
+        <option value="ACTIVE">Active</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="CANCELLED">Cancelled</option>
+        <option value="ARCHIVED">Archived</option>
+      </select>
+    </label>
+
+    <label>
+      Max players
+      <input type="number" formControlName="maxPlayers" min="1" max="100" />
+    </label>
+    <span *ngIf="form.get('maxPlayers')?.touched && form.get('maxPlayers')?.invalid" class="field-error">
+      <em *ngIf="form.get('maxPlayers')?.errors?.['min']">Max players must be at least 1.</em>
+      <em *ngIf="form.get('maxPlayers')?.errors?.['max']">Max players must not exceed 100.</em>
+    </span>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="loading()">Create campaign</button>
+      <a class="btn" routerLink="/dashboard">Cancel</a>
+    </div>
+  </form>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="submit()">Try again</button>
+  </div>
+</section>

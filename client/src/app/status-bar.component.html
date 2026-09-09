@@ -1,0 +1,12 @@
+<div class="status-bar">
+  <div *ngIf="status.loading()" class="status loading">Loading...</div>
+  <div *ngIf="status.unauthorized()" class="status unauthorized">Access denied. Please log in.</div>
+  <div *ngIf="status.disconnected()" class="status disconnected">Connection issue. Backend or database may be unreachable.</div>
+  <div *ngIf="status.errorMessage()" class="status error">{{ status.errorMessage() }}</div>
+  <div *ngIf="status.validationErrors().length > 0" class="status validation">
+    <strong>Validation errors:</strong>
+    <ul>
+      <li *ngFor="let e of status.validationErrors()">{{ e.field }}: {{ e.message }}</li>
+    </ul>
+  </div>
+</div>

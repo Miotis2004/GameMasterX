@@ -1,0 +1,86 @@
+<section class="create-character">
+  <h2>Create a character</h2>
+  <p class="muted">Fill in the character details. Ability scores must be integers between 1 and 30.</p>
+
+  <div *ngIf="created()" class="state success">
+    <p>Character created.</p>
+    <a class="btn btn-primary" routerLink="/characters/{{ created() }}">View character</a>
+    <a class="btn" routerLink="/characters">All characters</a>
+  </div>
+
+  <form *ngIf="!created()" [formGroup]="form.form" (ngSubmit)="submit()">
+    <label>
+      Name
+      <input type="text" formControlName="name" />
+    </label>
+    <span *ngIf="form.form.get('name')?.touched && form.form.get('name')?.invalid" class="field-error">
+      <em *ngIf="form.form.get('name')?.errors?.['required']">Name is required.</em>
+      <em *ngIf="form.form.get('name')?.errors?.['maxLength']">Name must not exceed 100 characters.</em>
+    </span>
+
+    <label>
+      Campaign id
+      <input type="text" formControlName="campaignId" />
+    </label>
+    <span *ngIf="form.form.get('campaignId')?.touched && form.form.get('campaignId')?.invalid" class="field-error">
+      <em *ngIf="form.form.get('campaignId')?.errors?.['required']">Campaign id is required.</em>
+      <em *ngIf="form.form.get('campaignId')?.errors?.['maxLength']">Campaign id must not exceed 100 characters.</em>
+    </span>
+
+    <label>
+      Game system
+      <input type="text" formControlName="gameSystem" />
+    </label>
+    <span *ngIf="form.form.get('gameSystem')?.touched && form.form.get('gameSystem')?.invalid" class="field-error">
+      <em>Game system must not exceed 100 characters.</em>
+    </span>
+
+    <label>
+      Level
+      <input type="number" formControlName="level" min="1" max="20" />
+    </label>
+    <span *ngIf="form.form.get('level')?.touched && form.form.get('level')?.invalid" class="field-error">
+      <em *ngIf="form.form.get('level')?.errors?.['required']">Level is required.</em>
+      <em *ngIf="form.form.get('level')?.errors?.['min']">Level must be at least 1.</em>
+      <em *ngIf="form.form.get('level')?.errors?.['max']">Level must not exceed 20.</em>
+    </span>
+
+    <fieldset>
+      <legend>Ability scores</legend>
+      <p class="muted">Each score must be an integer between 1 and 30. The modifier is derived automatically.</p>
+      <div *ngFor="let name of abilityNames" class="ability-row">
+        <label>
+          {{ abilityLabels[name] }}
+          <input type="number" [formControlName]="name" [min]="1" [max]="30" />
+        </label>
+        <span class="ability-modifier">({{ modifierFor(name) }})</span>
+        <span
+          *ngIf="abilityScores.get(name)?.touched && abilityScores.get(name)?.invalid"
+          class="field-error"
+        >
+          <em *ngIf="abilityScores.get(name)?.errors?.['min'] || abilityScores.get(name)?.errors?.['max']">
+            Must be between 1 and 30.
+          </em>
+          <em *ngIf="abilityScores.get(name)?.errors?.['required']">Required.</em>
+        </span>
+      </div>
+    </fieldset>
+
+    <span
+      *ngIf="form.form.get('abilityScores')?.touched && form.form.get('abilityScores')?.invalid"
+      class="field-error"
+    >
+      <em>Correct the ability scores highlighted above.</em>
+    </span>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="loading()">Create character</button>
+      <a class="btn" routerLink="/characters">Cancel</a>
+    </div>
+  </form>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="submit()">Try again</button>
+  </div>
+</section>

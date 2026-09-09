@@ -1,0 +1,81 @@
+<section class="character-sheet-view" *ngIf="character() as character">
+  <header class="character-sheet-header">
+    <div>
+      <h2>{{ character.name }}</h2>
+      <p class="muted">
+        <span *ngIf="character.gameSystem">Level {{ character.level }} {{ character.gameSystem }}</span>
+        <span *ngIf="!character.gameSystem">Level {{ character.level }}</span>
+        <span *ngIf="character.campaignId"> · {{ character.campaignId }}</span>
+      </p>
+    </div>
+    <nav class="actions">
+      <a class="btn" routerLink="/characters">All characters</a>
+      <a class="btn btn-primary" [routerLink]="['/characters', character.id, 'edit']">Edit</a>
+    </nav>
+  </header>
+
+  <section class="sheet-section">
+    <h3>Ability Scores</h3>
+    <div class="ability-grid">
+      <div class="ability-cell" *ngFor="let entry of abilityEntries(character)">
+        <div class="ability-name">{{ entry.label }}</div>
+        <div class="ability-value">{{ character.abilityScores[entry.key] }}</div>
+        <div class="ability-modifier">{{ character.abilityModifiers[entry.key] }}</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet-section" *ngIf="character.proficiency">
+    <h3>Proficiency</h3>
+    <p>Level: {{ character.proficiency.level }}</p>
+    <p>Proficiency bonus: +{{ character.proficiency.proficiencyBonus }}</p>
+    <ul *ngIf="character.proficiency.proficiencies?.length">
+      <li *ngFor="let prof of character.proficiency.proficiencies">{{ prof }}</li>
+    </ul>
+  </section>
+
+  <section class="sheet-section" *ngIf="character.hitPoints">
+    <h3>Hit Points</h3>
+    <p>Max: {{ character.hitPoints.max }}</p>
+    <p>Current: {{ character.hitPoints.current }}</p>
+    <p>Temporary: {{ character.hitPoints.temporary }}</p>
+  </section>
+
+  <section class="sheet-section" *ngIf="character.armorClass">
+    <h3>Armor Class</h3>
+    <p>{{ character.armorClass.value }} {{ character.armorClass.type ? '(' + character.armorClass.type + ')' : '' }}</p>
+  </section>
+
+  <section class="sheet-section" *ngIf="character.resources?.length">
+    <h3>Resources</h3>
+    <ul>
+      <li *ngFor="let resource of character.resources">
+        {{ resource.name }}: {{ resource.current }} / {{ resource.max }}
+        <span *ngIf="resource.description">— {{ resource.description }}</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="sheet-section" *ngIf="character.inventory?.length">
+    <h3>Inventory</h3>
+    <ul>
+      <li *ngFor="let item of character.inventory">
+        {{ item.quantity }}× {{ item.name }}
+        <span *ngIf="item.description">— {{ item.description }}</span>
+        <span *ngIf="item.weight !== null && item.weight !== undefined"> ({{ item.weight }} weight)</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="sheet-section meta">
+    <p class="muted">Created: {{ character.createdAt }}</p>
+    <p class="muted">Last updated: {{ character.updatedAt }}</p>
+  </section>
+</section>
+
+<div *ngIf="loading()" class="state">Loading character&hellip;</div>
+
+<div *ngIf="error()" class="state error">
+  <span>{{ error() }}</span>
+  <button type="button" class="btn" (click)="load()">Try again</button>
+</div>

@@ -1,0 +1,75 @@
+.create-campaign {
+  max-width: 40rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+input,
+select,
+textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border, #d9d9d9);
+  border-radius: 6px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+button {
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent, #2b6cb0);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border, #d9d9d9);
+  background: #fff;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.field-error {
+  color: var(--error, #c53030);
+  font-size: 0.8rem;
+}
+
+.state {
+  padding: 1rem 0;
+}
+
+.state.success {
+  color: var(--success, #2f855a);
+}
+
+.state.error {
+  color: var(--error, #c53030);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.muted {
+  color: var(--muted, #718096);
+  font-size: 0.875rem;
+}

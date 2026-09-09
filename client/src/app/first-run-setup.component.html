@@ -1,0 +1,19 @@
+<div class="setup-container">
+  <h2>First Run Setup</h2>
+  <form (ngSubmit)="submit()">
+    <label>
+      Username
+      <input [(ngModel)]="username" name="username" required />
+    </label>
+    <label>
+      Email
+      <input [(ngModel)]="email" name="email" type="email" required />
+    </label>
+    <label>
+      Password
+      <input [(ngModel)]="password" name="password" type="password" required />
+    </label>
+    <button type="submit" [disabled]="loading()">Create Admin</button>
+  </form>
+  <div *ngIf="error()" class="error">{{ error() }}</div>
+</div>

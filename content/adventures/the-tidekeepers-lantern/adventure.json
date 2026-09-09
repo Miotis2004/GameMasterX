@@ -1,0 +1,152 @@
+{
+  "id": "the-tidekeepers-lantern",
+  "schemaVersion": 1,
+  "title": "The Tidekeeper's Lantern",
+  "description": "A small, self-contained mystery for four adventurers. The lantern that guides boats safely past the shoals of Hollowmere has gone dark, and the keeper who tends it is missing. Players must explore the lighthouse, uncover what snuffed its flame, and return the light to the harbor before the next tide.",
+  "gameSystem": "system-agnostic (d20 5e-style)",
+  "recommendedPlayerCount": 4,
+  "status": "PLAYTEST",
+  "chapters": [
+    {
+      "id": "chapter-the-arrival",
+      "title": "The Arrival",
+      "description": "The party reaches Hollowmere at dusk, where the harbor keeper has work for them.",
+      "order": 0,
+      "scenes": [
+        {
+          "id": "scene-arrival",
+          "title": "Boots on the Wharf",
+          "description": "The boat pulls in against a still, mist-drifted harbor. Maren Vell, the tidekeeper, waits on the wet planks with a hooded oil lantern that gives no light. She explains that the great lantern atop the lighthouse has gone dark, and that the tide-turners' skiffs are already refusing to cross the shoals without a light.",
+          "order": 0,
+          "locationId": "location-harbor",
+          "npcIds": ["npc-maren-vell"],
+          "creatureIds": [],
+          "objectiveId": "objective-restore-the-light",
+          "branchIds": ["branch-help-or-hire"]
+        },
+        {
+          "id": "scene-the-descent",
+          "title": "Down Into the Light",
+          "description": "The party climbs the spiral of the lighthouse. Inside the lamp room the great lens is cold and its wick is black, and a cold sea-mist gathers into a restless shape that will not let the light be relit without answering for what it has stolen.",
+          "order": 1,
+          "locationId": "location-lighthouse",
+          "npcIds": ["npc-maren-vell"],
+          "creatureIds": ["creature-sea-mist"],
+          "objectiveId": "objective-restore-the-light",
+          "branchIds": []
+        }
+      ]
+    }
+  ],
+  "locations": [
+    {
+      "id": "location-harbor",
+      "name": "The Wharf of Hollowmere",
+      "description": "A weathered wooden wharf where fishing skiffs normally crowd. Tonight it is nearly empty, the water flat and grey, and the air tastes of salt and coming fog.",
+      "region": "Hollowmere Cove",
+      "environment": "OUTDOORS"
+    },
+    {
+      "id": "location-lighthouse",
+      "name": "The Tidekeeper's Light",
+      "description": "A tall stone lantern on the headland. A winding stair climbs to the lamp room, where the great lens once guided boats. Its fire is dead, and the cold mist there has taken a restless, watchful form.",
+      "region": "Hollowmere Headland",
+      "environment": "INDOORS"
+    }
+  ],
+  "npcs": [
+    {
+      "id": "npc-maren-vell",
+      "name": "Maren Vell",
+      "description": "The aging tidekeeper of Hollowmere. Steady-handed, blunt, and quietly guilty. She has tended the light for twenty years and knows the sea's moods better than any soul on the cove.",
+      "role": "QUESTGIVER",
+      "playerAware": true,
+      "gmNotes": "Maren is frightened more than she will admit. The light dimmed the night her late mate's old oil barrel was opened for the first time in years; she suspects the sea remembers being forgotten and is sulking. She wants the light back but fears asking the sea for forgiveness."
+    }
+  ],
+  "creatures": [
+    {
+      "id": "creature-sea-mist",
+      "name": "Sea-Mist Wraith",
+      "description": "A cold, watchful shape of fog and spray that curls around the great lens. It does not speak in words but in the memories of those who breathe it in, and it guards the light like a thing that has been left too long.",
+      "difficulty": "MODERATE",
+      "rating": 3,
+      "role": "Guardian of the lamp room; resolves through roleplay and a short encounter rather than pure combat."
+    }
+  ],
+  "objectives": [
+    {
+      "id": "objective-restore-the-light",
+      "title": "Restore the Tidekeeper's Light",
+      "description": "Relight the great lantern above Hollowmere so the skiffs will cross the shoals again, and learn from the sea-mist what it requires before the next high tide.",
+      "type": "MAIN",
+      "completed": false,
+      "deadlineRounds": 6
+    }
+  ],
+  "branches": [
+    {
+      "id": "branch-help-or-hire",
+      "title": "A Bargain on the Wharf",
+      "description": "Maren can pay the party in coin, in safe passage for the season, or in a promise. How the party answers sets the tone for how the tidekeeper trusts them in the lamp room.",
+      "kind": "CHOICE",
+      "consequenceSceneId": "scene-the-descent",
+      "fromSceneIds": ["scene-arrival"]
+    }
+  ],
+  "rewards": [
+    {
+      "id": "reward-restored-light",
+      "title": "The Light Restored",
+      "experiencePoints": 250,
+      "items": [
+        {
+          "name": "Tidekeeper's Compass",
+          "quantity": 1,
+          "description": "A brass compass whose needle always points toward the nearest shore of safe passage."
+        }
+      ],
+      "currency": [
+        {
+          "denomination": "copper",
+          "amount": 200
+        }
+      ]
+    }
+  ],
+  "secretNotes": [
+    {
+      "id": "secret-the-debt",
+      "identifier": "tidekeeper-debt",
+      "text": "The light did not die on its own. Maren has, for years, let the old ritual of offering the first catch to the sea fall by neglect. The sea-mist is not hostile: it is a reminder of an unpaid debt. If the party helps Maren make a proper offering at low tide, the wraith calms and relights the lens of its own accord.",
+      "revealed": false,
+      "revealCondition": "tidekeeper-debt"
+    }
+  ],
+  "worldFacts": [
+    {
+      "id": "fact-the-shoals",
+      "statement": "The shoals outside Hollowmere shift each night by the light of the moon, and only the great lantern can keep a safe channel through them.",
+      "category": "GEOGRAPHY",
+      "playerKnown": true
+    },
+    {
+      "id": "fact-the-tidekeepers",
+      "statement": "The tidekeepers of the cove have always begun each season by offering the first catch to the sea, a courtesy the fishing skiffs still honor even as they forget why.",
+      "category": "LORE",
+      "playerKnown": false
+    }
+  ],
+  "tags": [
+    {
+      "id": "tag-tone-mystery",
+      "name": "Mystery",
+      "category": "TONAL"
+    },
+    {
+      "id": "tag-size-one-shot",
+      "name": "One-Shot",
+      "category": "SESSION-SIZE"
+    }
+  ]
+}

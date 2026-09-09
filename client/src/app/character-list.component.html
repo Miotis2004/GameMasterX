@@ -1,0 +1,45 @@
+<section class="character-list">
+  <header class="character-list-header">
+    <div>
+      <h2>Characters</h2>
+      <p class="muted">The characters you own and the characters accessible through your campaigns.</p>
+    </div>
+    <nav class="actions">
+      <a class="btn btn-primary" routerLink="/characters/create">Create a character</a>
+    </nav>
+  </header>
+
+  <div *ngIf="loading()" class="state">Loading characters&hellip;</div>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+
+  <section *ngIf="!loading() && !error() && rows().length === 0" class="state empty">
+    <p>You have no characters yet.</p>
+    <a class="btn btn-primary" routerLink="/characters/create">Create your first character</a>
+  </section>
+
+  <ul *ngIf="!loading() && !error() && rows().length > 0" class="character-list-card">
+    <li *ngFor="let row of rows()" class="character-card">
+      <a class="character-link" [routerLink]="['/characters', row.id]">
+        <h3>{{ row.name }}</h3>
+        <p class="muted">
+          <span class="badge">{{ row.isOwner ? 'Owned' : 'Campaign' }}</span>
+          <span>Level {{ row.level }}</span>
+          <span *ngIf="row.gameSystem">{{ row.gameSystem }}</span>
+        </p>
+      </a>
+      <button
+        *ngIf="!row.isOwner"
+        type="button"
+        class="link-button"
+        (click)="removeCampaignCharacter(row.id)"
+        aria-label="Remove character"
+      >
+        Remove
+      </button>
+    </li>
+  </ul>
+</section>

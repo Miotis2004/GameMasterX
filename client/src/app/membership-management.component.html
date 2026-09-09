@@ -1,0 +1,95 @@
+<section class="membership">
+  <header class="membership-header">
+    <div>
+      <h2>Members</h2>
+      <p class="muted">Manage who belongs to this campaign and the roles they hold.</p>
+      <p class="muted muted-small">
+        Role controls here reflect your campaign role only. Every action below is
+        authorized by the backend; controls you cannot perform are hidden from this
+        list rather than acting as a security boundary.
+      </p>
+    </div>
+    <a class="btn" routerLink="/campaigns">Back to campaigns</a>
+  </header>
+
+  <div *ngIf="loading()" class="state">Loading members&hellip;</div>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+
+  <p *ngIf="actorId() === null" class="state muted">
+    The current user identity is unavailable, so membership actions are disabled.
+  </p>
+
+  <ul *ngIf="!loading() && !error() && members().length === 0" class="state empty">
+    <li>No members have joined this campaign yet.</li>
+  </ul>
+
+  <section
+    *ngIf="!loading() && !error() && members().length > 0"
+    class="membership-table"
+    [class.disabled]="actorId() === null"
+  >
+    <table>
+      <thead>
+        <tr>
+          <th>Member</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th class="actions-head">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let member of members()" [class.revoked]="member.status === 'REVOKED'">
+          <td class="member-id">{{ member.userId }}</td>
+          <td><span class="badge">{{ member.role }}</span></td>
+          <td>
+            <span class="badge status">{{ member.status }}</span>
+          </td>
+          <td class="actions">
+            <!-- A member may accept their own pending membership. -->
+            <button
+              *ngIf="canAccept(member)"
+              type="button"
+              class="btn btn-primary"
+              (click)="accept(member)"
+            >
+              Accept membership
+            </button>
+
+            <!-- A member may revoke (leave) their own membership. -->
+            <button
+              *ngIf="canRevoke(member)"
+              type="button"
+              class="btn"
+              (click)="revoke(member)"
+            >
+              Leave campaign
+            </button>
+
+            <!-- A member adjusts their own role; an authorised manager
+                 adjusts the role of other members. -->
+            <div *ngIf="canManageRole(member) && member.status !== 'REVOKED'" class="role-control">
+              <label for="role-{{ member.id }}">
+                Role
+                <select
+                  id="role-{{ member.id }}"
+                  [ngModel]="member.role"
+                  (ngModelChange)="changeRole(member, $event)"
+                >
+                  <option *ngFor="let role of roleOptionsFor(member)" [value]="role">{{ role }}</option>
+                </select>
+              </label>
+            </div>
+
+            <span *ngIf="!canAccept(member) && !canRevoke(member) && !canManageRole(member)" class="muted">
+              No actions available
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</section>

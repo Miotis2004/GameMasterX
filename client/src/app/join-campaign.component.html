@@ -1,0 +1,52 @@
+<section class="join-campaign">
+  <h2>Join a campaign</h2>
+  <p class="muted">Redeem an invite code or a local join code to join a campaign.</p>
+
+  <div *ngIf="membership() as result" class="state success">
+    <p>
+      Membership
+      <span class="badge">{{ result.status }}</span>
+      with role <strong>{{ result.role }}</strong>.
+    </p>
+    <p *ngIf="result.status === 'PENDING'" class="muted">
+      Your membership is pending approval. You will gain access once approved.
+    </p>
+    <a class="btn btn-primary" routerLink="/dashboard">Go to dashboard</a>
+  </div>
+
+  <form *ngIf="!membership()" [formGroup]="form" (ngSubmit)="submit()">
+    <fieldset>
+      <legend>Code type</legend>
+      <label class="mode">
+        <input type="radio" formControlName="mode" value="INVITE" />
+        <span>Invite code</span>
+        <span class="muted">Creates an active membership.</span>
+      </label>
+      <label class="mode">
+        <input type="radio" formControlName="mode" value="JOIN_CODE" />
+        <span>Join code</span>
+        <span class="muted">Creates a pending membership.</span>
+      </label>
+    </fieldset>
+
+    <label>
+      Code
+      <input type="text" formControlName="code" autocomplete="off" spellcheck="false" />
+    </label>
+    <span *ngIf="form.get('code')?.touched && form.get('code')?.invalid" class="field-error">
+      <em *ngIf="form.get('code')?.errors?.['required']">A code is required.</em>
+      <em *ngIf="form.get('code')?.errors?.['minlength']">Code must be at least 4 characters.</em>
+      <em *ngIf="form.get('code')?.errors?.['maxlength']">Code must not exceed 64 characters.</em>
+    </span>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="loading()">Join</button>
+      <a class="btn" routerLink="/dashboard">Cancel</a>
+    </div>
+  </form>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="submit()">Try again</button>
+  </div>
+</section>

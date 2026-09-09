@@ -1,0 +1,49 @@
+<section class="library">
+  <header class="library-header">
+    <div>
+      <h2>Adventure Library</h2>
+      <p class="muted">Imported adventures you can attach to a campaign.</p>
+    </div>
+    <nav class="actions">
+      <a class="btn" routerLink="/adventures/import">Import adventure</a>
+    </nav>
+  </header>
+
+  <form [formGroup]="filterForm" class="filter">
+    <label for="status-filter">Show</label>
+    <select id="status-filter" formControlName="status">
+      <option *ngFor="let option of statusOptions" [value]="option.value">{{ option.label }}</option>
+    </select>
+  </form>
+
+  <div *ngIf="loading() && adventures().length === 0" class="state">Loading adventures&hellip;</div>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+
+  <div *ngIf="!loading() && !error() && adventures().length === 0" class="empty">
+    <p>No adventures match the current filter.</p>
+    <a class="btn btn-primary" routerLink="/adventures/import">Import an adventure</a>
+  </div>
+
+  <ul class="adventure-list" *ngIf="adventures().length">
+    <li *ngFor="let adventure of adventures()">
+      <a class="adventure-card" [routerLink]="['/adventures', adventure.id]">
+        <h3>{{ adventure.title }}</h3>
+        <span class="badge">{{ adventure.status }}</span>
+        <p class="adventure-meta">
+          <span *ngIf="adventure.gameSystem">{{ adventure.gameSystem }}</span>
+          <span *ngIf="adventure.recommendedPlayerCount"> · {{ adventure.recommendedPlayerCount }} players</span>
+        </p>
+        <p class="adventure-desc">{{ adventure.description }}</p>
+        <p class="muted">
+          {{ adventure.chapters.length }} chapter
+          ({{ adventure.chapters.reduce((sum, c) => sum + (c.scenes?.length ?? 0), 0) }} scene
+          {{ adventure.chapters.reduce((sum, c) => sum + (c.scenes?.length ?? 0), 0) === 1 ? '' : 's' }})
+        </p>
+      </a>
+    </li>
+  </ul>
+</section>

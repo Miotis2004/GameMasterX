@@ -1,0 +1,63 @@
+<section class="import-view">
+  <header class="import-header">
+    <div>
+      <h2>Import an Adventure</h2>
+      <p class="muted">Upload a ZIP package containing an <code>adventure.json</code> manifest.</p>
+    </div>
+    <nav class="actions">
+      <a class="btn" routerLink="/adventures">Back to library</a>
+    </nav>
+  </header>
+
+  <div class="import-form" [formGroup]="importForm">
+    <label class="dropzone" for="package-file">
+      <span class="dropzone-label">
+        <ng-container *ngIf="!selectedFileLabel; else picked">Choose ZIP file…</ng-container>
+        <ng-template #picked>{{ selectedFileLabel() }}</ng-template>
+      </span>
+      <span class="muted">ZIP archive with an adventure.json manifest at its root</span>
+      <input
+        id="package-file"
+        type="file"
+        accept=".zip"
+        (change)="onFilesSelected($event)"
+        [disabled]="importing() || uploading()"
+      />
+    </label>
+
+    <label class="overwrite">
+      <input type="checkbox" formControlName="overwrite" />
+      Overwrite an existing adventure with the same identifier
+    </label>
+
+    <div class="actions">
+      <button type="button" class="btn btn-primary" (click)="submit()" [disabled]="importing()">
+        <span *ngIf="!uploading()">Import</span>
+        <span *ngIf="uploading()">Uploading… {{ progress() }}%</span>
+      </button>
+    </div>
+
+    <div *ngIf="uploading()" class="progress">
+      <div class="progress-bar" [style.width.%]="progress()"></div>
+    </div>
+  </div>
+
+  <div *ngIf="successId()" class="state success">
+    <p>Adventure <strong>{{ successId() }}</strong> imported successfully.</p>
+    <div class="actions">
+      <a class="btn btn-primary" [routerLink]="['/adventures', successId()]">View adventure</a>
+      <button type="button" class="btn" (click)="goLibrary()">Return to library</button>
+    </div>
+  </div>
+
+  <div *ngIf="error()" class="state error">
+    <div class="error-body">
+      <p class="error-title">Import failed</p>
+      <p>{{ error()?.message }}</p>
+      <ul *ngIf="error()?.fieldErrors?.length" class="field-errors">
+        <li *ngFor="let fe of error()?.fieldErrors"><strong>{{ fe.field }}</strong>: {{ fe.message }}</li>
+      </ul>
+    </div>
+    <button type="button" class="btn" (click)="retry()">Try again</button>
+  </div>
+</section>

@@ -1,0 +1,162 @@
+<ng-container *ngIf="adventure() as adventure">
+  <section class="detail-view">
+    <header class="detail-header">
+      <div>
+        <nav class="crumbs"><a routerLink="/adventures">Adventure Library</a></nav>
+        <h2>{{ adventure.title }}</h2>
+        <p class="muted">
+          <span class="badge">{{ adventure.status }}</span>
+          <span *ngIf="adventure.gameSystem">{{ adventure.gameSystem }}</span>
+          <span *ngIf="adventure.recommendedPlayerCount"> · {{ adventure.recommendedPlayerCount }} players</span>
+        </p>
+      </div>
+    </header>
+
+    <p class="summary">{{ adventure.description }}</p>
+
+    <p class="meta">
+      {{ adventure.chapters.length }} chapter
+      ({{ sceneCount(adventure) }} scene {{ sceneCount(adventure) === 1 ? '' : 's' }})
+      <span *ngIf="adventure.chapters.length"> ·</span>
+      <span *ngIf="adventure.tags?.length">{{ adventure.tags.length }} tag</span>
+    </p>
+
+    <section class="content-section">
+      <h3>Chapters &amp; Scenes</h3>
+      <div class="chapter" *ngFor="let chapter of adventure.chapters">
+        <div class="chapter-head">
+          <h4>{{ chapter.title }}</h4>
+          <span class="muted">{{ chapterSceneCount(chapter) }} scene
+            {{ chapterSceneCount(chapter) === 1 ? '' : 's' }}</span>
+        </div>
+        <p class="chapter-desc" *ngIf="chapter.description">{{ chapter.description }}</p>
+
+        <div class="scene" *ngFor="let scene of chapter.scenes">
+          <div class="scene-head">
+            <h5>{{ scene.title }}</h5>
+            <span class="muted">#{{ scene.id }}</span>
+          </div>
+          <p class="scene-desc">{{ scene.description }}</p>
+          <ul class="scene-tags">
+            <li *ngIf="locationById(adventure, scene.locationId) as loc">
+              📍 {{ loc.name }}
+            </li>
+            <li *ngFor="let npc of npcsById(adventure, scene.npcIds)">🧑 {{ npc.name }}</li>
+            <li *ngFor="let creature of creaturesById(adventure, scene.creatureIds)">🐾 {{ creature.name }}</li>
+            <li *ngIf="objectiveById(adventure, scene.objectiveId) as obj">🎯 {{ obj.title }}</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="content-grid">
+      <section class="content-section" *ngIf="adventure.locations?.length">
+        <h3>Locations</h3>
+        <ul>
+          <li *ngFor="let loc of adventure.locations">
+            <strong>{{ loc.name }}</strong>
+            <span *ngIf="loc.region"> · {{ loc.region }}</span>
+            <p>{{ loc.description }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="content-section" *ngIf="adventure.npcs?.length">
+        <h3>NPCs</h3>
+        <ul>
+          <li *ngFor="let npc of adventure.npcs">
+            <strong>{{ npc.name }}</strong> <span class="badge">{{ npc.role }}</span>
+            <p>{{ npc.description }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="content-section" *ngIf="adventure.creatures?.length">
+        <h3>Creatures</h3>
+        <ul>
+          <li *ngFor="let creature of adventure.creatures">
+            <strong>{{ creature.name }}</strong>
+            <span class="badge">{{ creature.difficulty }}</span>
+            <p>{{ creature.description }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="content-section" *ngIf="adventure.objectives?.length">
+        <h3>Objectives</h3>
+        <ul>
+          <li *ngFor="let objective of adventure.objectives">
+            <strong>{{ objective.title }}</strong> <span class="badge">{{ objective.type }}</span>
+            <p>{{ objective.description }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="content-section" *ngIf="adventure.branches?.length">
+        <h3>Branches</h3>
+        <ul>
+          <li *ngFor="let branch of adventure.branches">
+            <strong>{{ branch.title }}</strong> <span class="badge">{{ branch.kind }}</span>
+            <p>{{ branch.description }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="content-section" *ngIf="adventure.rewards?.length">
+        <h3>Rewards</h3>
+        <ul>
+          <li *ngFor="let reward of adventure.rewards">
+            <strong>{{ reward.title }}</strong> — {{ reward.experiencePoints }} XP
+            <ul *ngIf="reward.items?.length">
+              <li *ngFor="let item of reward.items">{{ item.quantity }}× {{ item.name }}</li>
+            </ul>
+            <ul *ngIf="reward.currency?.length">
+              <li *ngFor="let cur of reward.currency">{{ cur.amount }} {{ cur.denomination }}</li>
+            </ul>
+          </li>
+        </ul>
+      </section>
+
+      <section class="content-section" *ngIf="adventure.secretNotes?.length">
+        <h3>Secret Notes</h3>
+        <ul>
+          <li *ngFor="let note of adventure.secretNotes">
+            <strong>{{ note.identifier }}</strong>
+            <p>{{ note.text }}</p>
+          </li>
+        </ul>
+      </section>
+
+      <section class="content-section" *ngIf="adventure.worldFacts?.length">
+        <h3>World Facts</h3>
+        <ul>
+          <li *ngFor="let fact of adventure.worldFacts">
+            <span class="badge">{{ fact.category }}</span> {{ fact.statement }}
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="content-section" *ngIf="adventure.tags?.length">
+      <h3>Tags</h3>
+      <div class="tags">
+        <span class="badge" *ngFor="let tag of adventure.tags">{{ tag.name }}
+          <span *ngIf="tag.category">({{ tag.category }})</span>
+        </span>
+      </div>
+    </section>
+
+    <section class="content-section meta">
+      <p class="muted">Created: {{ adventure.createdAt }}</p>
+      <p class="muted">Last updated: {{ adventure.updatedAt }}</p>
+      <p class="muted">Schema version {{ adventure.schemaVersion }}</p>
+    </section>
+  </section>
+</ng-container>
+
+<div *ngIf="loading() && !adventure()" class="state">Loading adventure&hellip;</div>
+
+<div *ngIf="error()" class="state error">
+  <span>{{ error() }}</span>
+  <a class="btn" routerLink="/adventures">Back to library</a>
+</div>
