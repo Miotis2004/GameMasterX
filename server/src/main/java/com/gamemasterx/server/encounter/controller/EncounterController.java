@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -251,9 +252,12 @@ public class EncounterController {
             @PathVariable String id,
             @PathVariable String participantId,
             @Valid @RequestBody DamageRequest request,
+            @RequestParam(value = "expectedRevision", required = false) Long expectedRevision,
+            @RequestParam(value = "idempotencyKey", required = false) String idempotencyKey,
             HttpServletRequest httpRequest) {
         return ResponseEntity.ok(encounterService.applyDamage(
-                id, participantId, request.amount(), request.note(), requireActor(httpRequest)));
+                id, participantId, request.amount(), request.note(), requireActor(httpRequest),
+                expectedRevision, idempotencyKey));
     }
 
     /**
@@ -266,9 +270,12 @@ public class EncounterController {
             @PathVariable String id,
             @PathVariable String participantId,
             @Valid @RequestBody HealingRequest request,
+            @RequestParam(value = "expectedRevision", required = false) Long expectedRevision,
+            @RequestParam(value = "idempotencyKey", required = false) String idempotencyKey,
             HttpServletRequest httpRequest) {
         return ResponseEntity.ok(encounterService.applyHealing(
-                id, participantId, request.amount(), request.note(), requireActor(httpRequest)));
+                id, participantId, request.amount(), request.note(), requireActor(httpRequest),
+                expectedRevision, idempotencyKey));
     }
 
     /**
@@ -281,9 +288,12 @@ public class EncounterController {
             @PathVariable String id,
             @PathVariable String participantId,
             @Valid @RequestBody TemporaryHitPointsRequest request,
+            @RequestParam(value = "expectedRevision", required = false) Long expectedRevision,
+            @RequestParam(value = "idempotencyKey", required = false) String idempotencyKey,
             HttpServletRequest httpRequest) {
         return ResponseEntity.ok(encounterService.applyTemporaryHitPoints(
-                id, participantId, request.amount(), request.note(), requireActor(httpRequest)));
+                id, participantId, request.amount(), request.note(), requireActor(httpRequest),
+                expectedRevision, idempotencyKey));
     }
 
     /**

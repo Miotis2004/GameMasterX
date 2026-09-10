@@ -2,6 +2,7 @@ package com.gamemasterx.server.exception;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 public class ErrorResponse {
     private String errorCode;
@@ -9,6 +10,7 @@ public class ErrorResponse {
     private String correlationId;
     private String timestamp;
     private List<FieldError> fieldErrors;
+    private Map<String, Object> diagnostics;
 
     public ErrorResponse() {
         this.timestamp = Instant.now().toString();
@@ -60,5 +62,13 @@ public class ErrorResponse {
 
     public void setFieldErrors(List<FieldError> fieldErrors) {
         this.fieldErrors = fieldErrors;
+    }
+
+    public Map<String, Object> getDiagnostics() {
+        return diagnostics;
+    }
+
+    public void setDiagnostics(Map<String, Object> diagnostics) {
+        this.diagnostics = diagnostics;
     }
 }

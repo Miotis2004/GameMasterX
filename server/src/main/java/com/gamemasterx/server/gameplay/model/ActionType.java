@@ -20,6 +20,10 @@ public enum ActionType {
     MOVEMENT,
     /** Damage applied to a target. */
     DAMAGE,
+    /** A short rest: spend Hit Dice to recover hit points under the subset. */
+    REST_SHORT,
+    /** A long rest: recover hit points and resources under the subset. */
+    REST_LONG,
     /** A general ability check. */
     ABILITY_CHECK,
     /** Any action not covered by the categories above. */

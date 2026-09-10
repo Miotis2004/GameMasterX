@@ -13,6 +13,8 @@ import com.gamemasterx.server.encounter.model.Encounter;
 import com.gamemasterx.server.encounter.service.InitiativeService;
 import com.gamemasterx.server.encounter.service.InitiativeService.InitiativeResult;
 import com.gamemasterx.server.encounter.service.RulesProfileService;
+import com.gamemasterx.server.diagnostics.MongoTransactionCapability;
+import com.gamemasterx.server.exception.OptimisticConcurrencyException;
 import com.gamemasterx.server.dice.DiceExpression;
 import com.gamemasterx.server.dice.DiceRoller;
 import com.gamemasterx.server.dice.RollMode;
@@ -28,6 +30,7 @@ import com.gamemasterx.server.gameplay.model.Turn;
 import com.gamemasterx.server.gameplay.service.DamageService;
 import com.gamemasterx.server.gameplay.service.GameplayAuditService;
 import com.gamemasterx.server.gameplay.service.MovementRangeService;
+import com.gamemasterx.server.gameplay.service.RestService;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -72,27 +75,36 @@ public class EncounterService {
     private final MembershipService membershipService;
     private final RulesProfileService rulesProfileService;
     private final DamageService damageService;
+    private final RestService restService;
     private final GameplayAuditService gameplayAuditService;
     private final DiceRoller diceRoller;
     private final InitiativeService initiativeService;
     private final MovementRangeService movementRangeService;
+    private final EncounterCommitCoordinator encounterCommitCoordinator;
+    private final MongoTransactionCapability mongoTransactionCapability;
 
     public EncounterService(EncounterRepository encounterRepository,
                             MembershipService membershipService,
                             RulesProfileService rulesProfileService,
                             DamageService damageService,
+                            RestService restService,
                             GameplayAuditService gameplayAuditService,
                             DiceRoller diceRoller,
                             InitiativeService initiativeService,
-                            MovementRangeService movementRangeService) {
+                            MovementRangeService movementRangeService,
+                            EncounterCommitCoordinator encounterCommitCoordinator,
+                            MongoTransactionCapability mongoTransactionCapability) {
         this.encounterRepository = encounterRepository;
         this.membershipService = membershipService;
         this.rulesProfileService = rulesProfileService;
         this.damageService = damageService;
+        this.restService = restService;
         this.gameplayAuditService = gameplayAuditService;
         this.diceRoller = diceRoller;
         this.initiativeService = initiativeService;
         this.movementRangeService = movementRangeService;
+        this.encounterCommitCoordinator = encounterCommitCoordinator;
+        this.mongoTransactionCapability = mongoTransactionCapability;
     }
 
     /**
@@ -441,12 +453,14 @@ public class EncounterService {
      *                                  missing or the amount is negative
      */
     public EncounterDto applyDamage(String encounterId, String participantId, int amount,
-                                    String note, String actor) {
+                                    String note, String actor, Long expectedRevision,
+                                    String idempotencyKey) {
         String resolvedParticipant = requireNonBlank(participantId, "participantId");
         if (amount < 0) {
             throw new IllegalArgumentException("Damage amount must not be negative");
         }
         Encounter encounter = requireEncounter(encounterId);
+        assertExpectedRevision(encounter.getId(), expectedRevision);
         ensureAccessible(actor, encounter);
         requireEncounterActiveForGameplay(encounter);
         Encounter.Participant participant = requireParticipant(encounter, resolvedParticipant);
@@ -473,16 +487,19 @@ public class EncounterService {
         return mutate(encounter, actor, revisionBefore, action,
                 List.of(new Mutation(null, "hitPoints", resolvedParticipant,
                         "Applied damage",
-                        before, after, Instant.now())));
+                        before, after, Instant.now())),
+                expectedRevision, idempotencyKey);
     }
 
     public EncounterDto applyHealing(String encounterId, String participantId, int amount,
-                                     String note, String actor) {
+                                     String note, String actor, Long expectedRevision,
+                                     String idempotencyKey) {
         String resolvedParticipant = requireNonBlank(participantId, "participantId");
         if (amount < 0) {
             throw new IllegalArgumentException("Healing amount must not be negative");
         }
         Encounter encounter = requireEncounter(encounterId);
+        assertExpectedRevision(encounter.getId(), expectedRevision);
         ensureAccessible(actor, encounter);
         requireEncounterActiveForGameplay(encounter);
         Encounter.Participant participant = requireParticipant(encounter, resolvedParticipant);
@@ -506,16 +523,19 @@ public class EncounterService {
         return mutate(encounter, actor, revisionBefore, action,
                 List.of(new Mutation(null, "hitPoints", resolvedParticipant,
                         "Applied " + resolved.applied() + " healing".concat(note != null ? " (" + note + ")" : ""),
-                        before, after, Instant.now())));
+                        before, after, Instant.now())),
+                expectedRevision, idempotencyKey);
     }
 
     public EncounterDto applyTemporaryHitPoints(String encounterId, String participantId, int amount,
-                                                String note, String actor) {
+                                                String note, String actor, Long expectedRevision,
+                                                String idempotencyKey) {
         String resolvedParticipant = requireNonBlank(participantId, "participantId");
         if (amount < 0) {
             throw new IllegalArgumentException("Temporary hit points must not be negative");
         }
         Encounter encounter = requireEncounter(encounterId);
+        assertExpectedRevision(encounter.getId(), expectedRevision);
         ensureAccessible(actor, encounter);
         requireEncounterActiveForGameplay(encounter);
         Encounter.Participant participant = requireParticipant(encounter, resolvedParticipant);
@@ -539,7 +559,8 @@ public class EncounterService {
         return mutate(encounter, actor, revisionBefore, action,
                 List.of(new Mutation(null, "temporaryHitPoints", resolvedParticipant,
                         "Granted " + amount + " temporary hit points".concat(note != null ? " (" + note + ")" : ""),
-                        before, after, Instant.now())));
+                        before, after, Instant.now())),
+                expectedRevision, idempotencyKey);
     }
 
     public EncounterDto resolveDeathSave(String encounterId, String participantId,
@@ -585,7 +606,282 @@ public class EncounterService {
                         before, after, Instant.now())));
     }
 
-    public EncounterDto addCondition(String encounterId, String participantId, String name,
+    /**
+     * Resolves a short rest for the whole encounter. Each participant spends any
+     * number of their available Hit Dice (up to {@code hitDiceToSpend}) to
+     * recover hit points, exactly as resolved by {@link RestService}. The
+     * encounter must be {@link EncounterStatus#ACTIVE} and it must be the
+     * requesting actor's turn; a rest is only taken while an action is available
+     * and the actor owns the current turn.
+     *
+     * @param encounterId    the stable encounter identifier
+     * @param actor          the authenticated caller who initiates the rest
+     * @param hitDiceToSpend the number of Hit Dice each participant spends (any
+     *                       number may be spent, capped by what each holds)
+     * @param hitDieSize     the size of each participant's Hit Dice, or {@code null}
+     *                       to use the default six-sided die
+     * @param conModifier    each participant's Constitution modifier added to each
+     *                       Die, or {@code 0} when {@code null}
+     * @param rollMode       the hit-die roll mode: {@code "random"} (default) or {@code "seeded"}
+     * @param seed           the seed for a seeded roll; required when {@code rollMode}
+     *                       is {@code "seeded"}, ignored otherwise
+     * @param note           a free-form note on the rest, or {@code null}
+     * @return the updated encounter
+     * @throws IllegalArgumentException when the encounter or participant is
+     *                                  missing, the amount of Hit Dice is
+     *                                  negative, no turn is in progress, or it is
+     *                                  not the actor's turn
+     */
+    public EncounterDto performShortRest(String encounterId, String actor,
+                                         int hitDiceToSpend, Integer hitDieSize,
+                                         Integer conModifier, String rollMode, String seed,
+                                         String note) {
+        String resolvedParticipant = requireNonBlank(actor, "actor");
+        if (hitDiceToSpend < 0) {
+            throw new IllegalArgumentException("The number of Hit Dice to spend must not be negative");
+        }
+        Encounter encounter = requireEncounter(encounterId);
+        ensureAccessible(resolvedParticipant, encounter);
+        requireEncounterActiveForGameplay(encounter);
+        requireTurnAvailableForRest(encounter, resolvedParticipant);
+        String mode = (rollMode != null && !rollMode.isBlank()) ? rollMode.toLowerCase() : "random";
+        if ("seeded".equals(mode) && (seed == null || seed.isBlank())) {
+            throw new IllegalArgumentException("A seed is required for a seeded short rest roll");
+        }
+        int resolvedHitDieSize = (hitDieSize != null && hitDieSize >= RestService.DEFAULT_HIT_DIE_SIZE)
+                ? hitDieSize : RestService.DEFAULT_HIT_DIE_SIZE;
+        int resolvedConModifier = (conModifier != null) ? conModifier : 0;
+        int revisionBefore = encounter.getRevision();
+        List<RestService.ResolvedShortRest> perParticipant = new ArrayList<>();
+        List<Mutation> mutations = new ArrayList<>();
+        int totalRecovered = 0;
+        for (Encounter.Participant participant : encounter.getParticipants()) {
+            Encounter.HitPoints hp = hitPointsFor(participant);
+            HitDicePool pool = hitDicePool(participant);
+            RestService.ResolvedShortRest resolved = restService.resolveShortRest(
+                    new RestService.ShortRestInput(
+                            new RestService.HitPoints(hp.getMax(), hp.getCurrent(), hp.getTemporary()),
+                            pool.available, resolvedHitDieSize, resolvedConModifier, hitDiceToSpend));
+            hp.setCurrent(resolved.newCurrentHitPoints());
+            setHitDiceCurrent(participant, resolved.hitDiceRemaining());
+            totalRecovered += resolved.hpRecovered();
+            String suffix = noteSuffix(note);
+            mutations.add(new Mutation(
+                    null, "restShort", participant.getId(),
+                    "Short rest: spent " + resolved.hitDiceSpent() + " Hit Die(s), recovered "
+                            + resolved.hpRecovered() + " hit points[" + resolvedHitDieSize + "s]" + suffix,
+                    hitPointsAndHitDiceSnapshot(participant),
+                    hitPointsAndHitDiceSnapshot(participant),
+                    Instant.now()));
+            perParticipant.add(resolved);
+        }
+
+        List<Modifier> modifiers = List.of(
+                new Modifier("hit dice spent",
+                        -perParticipant.stream().mapToInt(RestService.ResolvedShortRest::hitDiceSpent).sum()));
+        Action action = new Action(
+                null, ActionType.REST_SHORT, resolvedParticipant,
+                null, "Short rest", "hitDice", modifiers, List.of(),
+                0, totalRecovered, ActionOutcome.SUCCESS, note, Instant.now());
+
+        return mutate(encounter, resolvedParticipant, revisionBefore, action, mutations);
+    }
+
+    /**
+     * Resolves a long rest for the whole encounter. Every participant recovers all
+     * hit points, recovers spent Hit Dice up to half their total, and recovers
+     * every other resource to its maximum, exactly as resolved by {@link
+     * RestService}. The encounter must be {@link EncounterStatus#ACTIVE} and it
+     * must be the requesting actor's turn; a rest is only taken while an action
+     * is available and the actor owns the current turn.
+     *
+     * @param encounterId the stable encounter identifier
+     * @param actor       the authenticated caller who initiates the rest
+     * @param note        a free-form note on the rest, or {@code null}
+     * @return the updated encounter
+     * @throws IllegalArgumentException when the encounter or participant is
+     *                                  missing, no turn is in progress, or it is
+     *                                  not the actor's turn
+     */
+    public EncounterDto performLongRest(String encounterId, String actor, String note) {
+        String resolvedParticipant = requireNonBlank(actor, "actor");
+        Encounter encounter = requireEncounter(encounterId);
+        ensureAccessible(resolvedParticipant, encounter);
+        requireEncounterActiveForGameplay(encounter);
+        requireTurnAvailableForRest(encounter, resolvedParticipant);
+
+        int revisionBefore = encounter.getRevision();
+        List<Mutation> mutations = new ArrayList<>();
+        int totalRecovered = 0;
+        for (Encounter.Participant participant : encounter.getParticipants()) {
+            Encounter.HitPoints hp = hitPointsFor(participant);
+            HitDicePool pool = hitDicePool(participant);
+            List<RestService.ResourceRecovery> otherResources = otherResources(participant);
+            RestService.ResolvedLongRest resolved = restService.resolveLongRest(
+                    new RestService.LongRestInput(
+                            new RestService.HitPoints(hp.getMax(), hp.getCurrent(), hp.getTemporary()),
+                            pool.available, pool.max,
+                            List.copyOf(otherResources), encounter.getRulesProfile()));
+            hp.setCurrent(resolved.newCurrentHitPoints());
+            setHitDiceCurrent(participant, resolved.hitDiceAfter());
+            for (Encounter.Resource r : participant.getResources()) {
+                if (isHitDiceResource(r)) {
+                    continue;
+                }
+                r.setCurrent(Math.max(0, Math.min(r.getMax(), r.getCurrent())));
+            }
+            totalRecovered += resolved.hpRecovered();
+            String suffix = noteSuffix(note);
+            mutations.add(new Mutation(
+                    null, "restLong", participant.getId(),
+                    "Long rest: recovered " + resolved.hpRecovered() + " hit points, "
+                            + resolved.hitDiceRecovered() + " Hit Die(s), "
+                            + resolved.resourcePointsRecovered() + " resource point(s)" + suffix,
+                    hitPointsAndResourceSnapshot(participant),
+                    hitPointsAndResourceSnapshot(participant),
+                    Instant.now()));
+        }
+
+        List<Modifier> modifiers = List.of(new Modifier("hit points", totalRecovered));
+        Action action = new Action(
+                null, ActionType.REST_LONG, resolvedParticipant,
+                null, "Long rest", "hitPoints", modifiers, List.of(),
+                0, totalRecovered, ActionOutcome.SUCCESS, note, Instant.now());
+
+        return mutate(encounter, resolvedParticipant, revisionBefore, action, mutations);
+    }
+
+    /**
+     * Gates a rest action by turn ownership and action availability. A rest is
+     * available only while the owning encounter is {@link EncounterStatus#ACTIVE}
+     * (a draft, paused or completed encounter has no actions available) and it is
+     * legal only when the requesting actor is the participant whose turn it
+     * currently is. This is the single backend-authoritative gate that prevents
+     * out-of-turn or unavailable rests from being resolved, regardless of what
+     * the UI happens to show.
+     *
+     * @param encounter the owning encounter, already loaded
+     * @param actor     the authenticated caller
+     * @throws IllegalArgumentException when the encounter is not active, no turn is
+     *                                  in progress, or it is not the actor's turn
+     */
+    private void requireTurnAvailableForRest(Encounter encounter, String actor) {
+        if (encounter.getStatus() != EncounterStatus.ACTIVE) {
+            throw new IllegalArgumentException(
+                    "A rest can only be taken while the encounter is active "
+                            + "(current state: " + encounter.getStatus() + ")");
+        }
+        List<String> order = encounter.getInitiativeOrder();
+        if (order == null || order.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No turn is in progress in this encounter; a rest requires an active turn");
+        }
+        int turnIndex = encounter.getTurn();
+        String currentTurnParticipant = (turnIndex >= 0 && turnIndex < order.size())
+                ? order.get(turnIndex) : null;
+        if (currentTurnParticipant == null) {
+            throw new IllegalArgumentException(
+                    "No turn is in progress in this encounter; a rest requires an active turn");
+        }
+        if (!currentTurnParticipant.equals(actor)) {
+            throw new IllegalArgumentException(
+                    "It is not the actor's turn to initiate a rest; "
+                            + "it is " + currentTurnParticipant + "'s turn");
+        }
+    }
+
+    /**
+     * @param participant the participant to read
+     * @return the participant's Hit Dice pool as an {@code (available, max)} pair,
+     *         creating a Hit Dice resource when none exists so a participant
+     *         without one still resolves with an empty pool
+     */
+    private HitDicePool hitDicePool(Encounter.Participant participant) {
+        Encounter.Resource resource = findHitDiceResource(participant, true);
+        return new HitDicePool(resource.getCurrent(), resource.getMax());
+    }
+
+    /**
+     * Sets the current value of the participant's Hit Dice pool, preserving the
+     * pool's maximum.
+     */
+    private void setHitDiceCurrent(Encounter.Participant participant, int current) {
+        Encounter.Resource resource = findHitDiceResource(participant, true);
+        resource.setCurrent(current);
+    }
+
+    private boolean isHitDiceResource(Encounter.Resource resource) {
+        return resource != null
+                && resource.getName() != null
+                && resource.getName().equalsIgnoreCase(RestService.HIT_DIE_RESOURCE_NAME);
+    }
+
+    private List<RestService.ResourceRecovery> otherResources(Encounter.Participant participant) {
+        List<RestService.ResourceRecovery> others = new ArrayList<>();
+        for (Encounter.Resource r : participant.getResources()) {
+            if (isHitDiceResource(r)) {
+                continue;
+            }
+            others.add(new RestService.ResourceRecovery(
+                    r.getName(), r.getCurrent(), r.getMax(), 0));
+        }
+        return others;
+    }
+
+    /**
+     * @param resource the stored resource
+     * @return {@code true} when the resource represents the participant's Hit Dice pool
+     */
+    private static boolean isHitDiceResourceName(Encounter.Resource resource) {
+        return resource != null && resource.getName() != null
+                && resource.getName().equalsIgnoreCase(RestService.HIT_DIE_RESOURCE_NAME);
+    }
+
+    private Encounter.Resource findHitDiceResource(Encounter.Participant participant, boolean createIfMissing) {
+        for (Encounter.Resource r : participant.getResources()) {
+            if (isHitDiceResource(r)) {
+                return r;
+            }
+        }
+        if (createIfMissing) {
+            Encounter.Resource resource = new Encounter.Resource(
+                    RestService.HIT_DIE_RESOURCE_NAME, 0, 0, "Hit Dice pool");
+            participant.getResources().add(resource);
+            return resource;
+        }
+        return null;
+    }
+
+    private Map<String, Object> hitPointsAndHitDiceSnapshot(Encounter.Participant participant) {
+        Map<String, Object> map = hitPointsSnapshot(hitPointsFor(participant));
+        HitDicePool pool = hitDicePool(participant);
+        map.put("hitDice", pool.available);
+        map.put("hitDiceMax", pool.max);
+        return map;
+    }
+
+    private Map<String, Object> hitPointsAndResourceSnapshot(Encounter.Participant participant) {
+        Map<String, Object> map = hitPointsSnapshot(hitPointsFor(participant));
+        HitDicePool pool = hitDicePool(participant);
+        map.put("hitDice", pool.available);
+        map.put("hitDiceMax", pool.max);
+        map.put("resources", resourceSnapshot(participant));
+        return map;
+    }
+
+    private List<Map<String, Object>> resourceSnapshot(Encounter.Participant participant) {
+        List<Map<String, Object>> snapshots = new ArrayList<>();
+        for (Encounter.Resource r : participant.getResources()) {
+            Map<String, Object> snapshot = new HashMap<>();
+            snapshot.put("name", r.getName());
+            snapshot.put("current", r.getCurrent());
+            snapshot.put("max", r.getMax());
+            snapshots.add(snapshot);
+        }
+        return snapshots;
+    }
+
+    public EncounterDto addCondition(String encounterId, String participantId, String name, 
                                      String description, Integer roundsRemaining, String actor) {
         String resolvedParticipant = requireNonBlank(participantId, "participantId");
         String conditionName = requireNonBlank(name, "name");
@@ -760,27 +1056,110 @@ public class EncounterService {
      * @param mutations      the before/after mutations to record as accepted
      * @return the updated encounter
      */
+    /**
+     * Applies a mutation-bearing gameplay change to the stored encounter through
+     * the guarded commit path. No expected revision and no idempotency key are
+     * supplied, so this records the change without optimistic-concurrency or
+     * retry protection (used by the purely cosmetic lifecycle moves such as
+     * grid movement and condition changes).
+     */
     private EncounterDto mutate(Encounter encounter, String actor, int revisionBefore,
                                 Action action, List<Mutation> mutations) {
-        int revisionAfter = revisionBefore + 1;
-        bumpUpdated(encounter);
-        EncounterDto dto = toDto(encounterRepository.save(encounter));
+        return mutate(encounter, actor, revisionBefore, action, mutations, null, null);
+    }
 
-        Turn turn = new Turn(
-                null, encounter.getCampaignId(), encounter.getId(),
-                encounter.getRound(), encounter.getTurn(), actor,
-                List.of(action), List.of(),
-                revisionBefore, revisionAfter, Instant.now(), Instant.now());
-        List<MutationDecision> resolutions = new ArrayList<>();
-        List<String> reasons = new ArrayList<>();
-        for (int i = 0; i < mutations.size(); i++) {
-            resolutions.add(MutationDecision.ACCEPTED);
-            reasons.add(null);
+    /**
+     * Applies a mutation-bearing gameplay change to the stored encounter through
+     * the guarded commit path owned by {@link EncounterCommitCoordinator}.
+     *
+     * <p>The whole read-modify-write happens inside the coordinator's commit,
+     * which is wrapped in a multi-document transaction when the connected MongoDB
+     * is a transaction-capable replica set. This guarantees that the aggregate
+     * save and the immutable turn/audit append are written together and either
+     * both commit or neither does (no partial commit). The optimistic-concurrency
+     * check against {@code expectedRevision} is performed inside that same commit
+     * against the freshly loaded document, so a stale caller-supplied revision &ndash;
+     * and therefore a conflicting concurrent write &ndash; is rejected before
+     * anything is persisted.</p>
+     *
+     * <p>If a caller-supplied {@code idempotencyKey} has already completed a
+     * successful operation, the stored outcome is returned and the guarded
+     * operation is never run again &ndash; no damage is applied, no resource is
+     * consumed, no dice are rolled and no turn is recorded. This is what prevents
+     * a retry from applying its effect twice.</p>
+     *
+     * @param encounter      the already-loaded, already-access-encounter being mutated
+     * @param actor          the authenticated actor recording the change
+     * @param revisionBefore the revision before the change
+     * @param action         the gameplay action summarising the change
+     * @param mutations      the before/after mutations to record as accepted
+     * @param expectedRevision the revision the caller expects to see stored, or
+     *                         {@code null} to skip the optimistic-concurrency check
+     * @param idempotencyKey   the caller-supplied idempotency key, or {@code null}
+     *                         when the operation is not retry-guarded
+     * @return the updated encounter
+     */
+    private EncounterDto mutate(Encounter encounter, String actor, int revisionBefore,
+                                Action action, List<Mutation> mutations,
+                                Long expectedRevision, String idempotencyKey) {
+        return encounterCommitCoordinator.commit(
+                idempotencyKey, "gameplay-change", () -> {
+                    // Optimistic-concurrency check against the stored document.
+                    // Runs inside the (optional) transaction, so a conflicting
+                    // concurrent commit is detected before anything is persisted.
+                    assertExpectedRevision(encounter.getId(), expectedRevision);
+
+                    int revisionAfter = revisionBefore + 1;
+                    bumpUpdated(encounter);
+                    EncounterDto dto = toDto(encounterRepository.save(encounter));
+
+                    Turn turn = new Turn(
+                            null, encounter.getCampaignId(), encounter.getId(),
+                            encounter.getRound(), encounter.getTurn(), actor,
+                            List.of(action), List.of(),
+                            revisionBefore, revisionAfter, Instant.now(), Instant.now());
+                    List<MutationDecision> resolutions = new ArrayList<>();
+                    List<String> reasons = new ArrayList<>();
+                    for (int i = 0; i < mutations.size(); i++) {
+                        resolutions.add(MutationDecision.ACCEPTED);
+                        reasons.add(null);
+                    }
+                    gameplayAuditService.appendTurnAndAudit(
+                            turn, mutations, resolutions, reasons,
+                            revisionBefore, revisionAfter, actor, null);
+                    return dto;
+                }).dto();
+    }
+
+    /**
+     * Asserts that the revision currently stored for the encounter matches the
+     * revision the caller expected. This is the expected-revision optimistic
+     * concurrency guard: when another writer has already committed a change the
+     * stored revision has advanced past the caller's expectation and the
+     * commit is rejected with {@link OptimisticConcurrencyException} before
+     * anything is persisted, so there is no partial commit.
+     *
+     * <p>A {@code null} {@code expectedRevision} disables the check (used by the
+     * cosmetic lifecycle moves that do not carry an optimistic-concurrency
+     * token).</p>
+     *
+     * @param encounterId      the encounter being committed
+     * @param expectedRevision the revision the caller expects, or {@code null}
+     *                         to skip the check
+     * @throws OptimisticConcurrencyException when a stored revision is found
+     *                                        that differs from the expected one
+     * @throws IllegalArgumentException         when no such encounter exists
+     */
+    private void assertExpectedRevision(String encounterId, Long expectedRevision) {
+        if (expectedRevision == null) {
+            return;
         }
-        gameplayAuditService.appendTurnAndAudit(
-                turn, mutations, resolutions, reasons,
-                revisionBefore, revisionAfter, actor, null);
-        return dto;
+        Encounter stored = encounterRepository.findById(encounterId).orElseThrow(
+                () -> new IllegalArgumentException("Encounter not found: " + encounterId));
+        if (stored.getRevision() != expectedRevision) {
+            throw new OptimisticConcurrencyException(
+                    encounterId, expectedRevision.intValue(), stored.getRevision());
+        }
     }
 
     /**
@@ -889,6 +1268,16 @@ public class EncounterService {
             throw new IllegalArgumentException(field + " must not be blank");
         }
         return value;
+    }
+
+    /**
+     * A participant's Hit Dice pool: the number currently available and the total
+     * (maximum) number of Hit Dice they hold.
+     *
+     * @param available the Hit Dice currently available to spend
+     * @param max       the total (maximum) number of Hit Dice
+     */
+    private record HitDicePool(int available, int max) {
     }
 
     /**

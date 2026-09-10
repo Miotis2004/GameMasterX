@@ -9,6 +9,8 @@ import { CharacterListComponent } from './character-list.component';
 import { CreateCharacterComponent } from './create-character.component';
 import { CharacterSheetComponent } from './character-sheet.component';
 import { EditCharacterComponent } from './edit-character.component';
+import { EncounterSetupComponent } from './encounter-setup.component';
+import { EncounterPlayComponent } from './encounter-play.component';
 
 export const routes: Routes = [
   { path: 'setup', component: FirstRunSetupComponent },
@@ -62,6 +64,14 @@ export const routes: Routes = [
       {
         path: 'campaigns/:campaignId/members',
         component: MembershipManagementComponent,
+      },
+      {
+        path: 'encounters/create',
+        component: EncounterSetupComponent,
+      },
+      {
+        path: 'encounters/:id',
+        component: EncounterPlayComponent,
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]

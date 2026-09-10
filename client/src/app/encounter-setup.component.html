@@ -1,0 +1,149 @@
+<section class="encounter-setup">
+  <header>
+    <h2>Set up an encounter</h2>
+    <p class="muted">
+      Create a draft encounter and add the player and non-player participants that
+      will take part. The encounter stays in <strong>DRAFT</strong> until you start
+      it, so you can organise participants first.
+    </p>
+  </header>
+
+  <!-- Creation phase -->
+  <form *ngIf="!encounter()" [formGroup]="createForm" (ngSubmit)="submitEncounter()">
+    <label>
+      Encounter name
+      <input type="text" formControlName="name" placeholder="e.g. Goblin Ambush" />
+    </label>
+    <span *ngIf="createForm.get('name')?.touched && onCreateNameInvalid" class="field-error">
+      <em *ngIf="createForm.get('name')?.errors?.['required']">Encounter name is required.</em>
+      <em *ngIf="createForm.get('name')?.errors?.['maxLength']">
+        Encounter name must not exceed 100 characters.
+      </em>
+    </span>
+
+    <label>
+      Campaign id
+      <input type="text" formControlName="campaignId" placeholder="The campaign this encounter belongs to" />
+    </label>
+    <span *ngIf="createForm.get('campaignId')?.touched && onCreateCampaignInvalid" class="field-error">
+      <em *ngIf="createForm.get('campaignId')?.errors?.['required']">Campaign id is required.</em>
+      <em *ngIf="createForm.get('campaignId')?.errors?.['maxLength']">
+        Campaign id must not exceed 100 characters.
+      </em>
+    </span>
+
+    <label>
+      Rules profile
+      <select formControlName="rulesProfile">
+        <option *ngFor="let profile of rulesProfiles" [value]="profile">{{ profile }}</option>
+      </select>
+    </label>
+
+    <span *ngIf="error()" class="state error">
+      <span>{{ error() }}</span>
+      <button type="button" class="btn" (click)="submitEncounter()">Try again</button>
+    </span>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="loading()">Create encounter</button>
+    </div>
+  </form>
+
+  <!-- Participant phase -->
+  <div *ngIf="awaitingParticipants" class="participant-phase">
+    <h3>Participants</h3>
+    <p class="muted">
+      Add players (controlled by their owner) and non-player participants
+      (controlled by the game master). Add as many as you need, then save.
+    </p>
+
+    <div class="participant-actions">
+      <button type="button" class="btn btn-primary" (click)="addPlayer()">+ Add player</button>
+      <button type="button" class="btn" (click)="addNonPlayer()">+ Add non-player</button>
+    </div>
+
+    <div *ngIf="participantEntries.invalid" class="state error">
+      Please correct the highlighted participant fields before saving.
+    </div>
+
+    <div class="participant-entries">
+      <div
+        *ngFor="let entry of participantEntries.controls; let i = index"
+        class="participant-card"
+        [formGroup]="entry"
+      >
+        <div class="participant-header">
+          <h4>Participant {{ i + 1 }}</h4>
+          <button type="button" class="link-btn" (click)="removeParticipantEntry(i)">Remove</button>
+        </div>
+
+        <label>
+          Name
+          <input type="text" formControlName="name" placeholder="e.g. Fighter Ayleid" />
+        </label>
+        <span *ngIf="entry.get('name')?.touched && entry.get('name')?.invalid" class="field-error">
+          <em *ngIf="entry.get('name')?.errors?.['required']">Name is required.</em>
+          <em *ngIf="entry.get('name')?.errors?.['maxLength']">Name must not exceed 100 characters.</em>
+        </span>
+
+        <label>
+          Controlled by
+          <select formControlName="actorControl">
+            <option [value]="'SELF'">{{ actorControlLabels['SELF'] }}</option>
+            <option [value]="'GM'">{{ actorControlLabels['GM'] }}</option>
+          </select>
+        </label>
+
+        <fieldset>
+          <legend>Hit points</legend>
+          <p class="muted">Optional. Leave blank for a token-only participant.</p>
+          <label>
+            Max
+            <input type="number" formControlName="maxHitPoints" min="0" />
+          </label>
+          <label>
+            Current
+            <input type="number" formControlName="currentHitPoints" min="0" />
+          </label>
+          <span *ngIf="entry.touched && entry.invalid" class="field-error">
+            <em *ngIf="entry.get('maxHitPoints')?.errors?.['currentExceedsMax'] || entry.errors?.['currentExceedsMax']">
+              Current hit points cannot exceed the maximum.
+            </em>
+            <em *ngIf="entry.get('maxHitPoints')?.errors?.['required'] || entry.get('currentHitPoints')?.errors?.['required']">
+              Maximum hit points are required.
+            </em>
+            <em *ngIf="entry.get('maxHitPoints')?.errors?.['min'] || entry.get('currentHitPoints')?.errors?.['min']">
+              Hit points cannot be negative.
+            </em>
+          </span>
+        </fieldset>
+
+        <label>
+          Movement speed (grid squares)
+          <input type="number" formControlName="movementSpeed" min="0" />
+        </label>
+        <span *ngIf="entry.get('movementSpeed')?.touched && entry.get('movementSpeed')?.invalid" class="field-error">
+          <em>Movement speed cannot be negative.</em>
+        </span>
+      </div>
+    </div>
+
+    <div class="participant-summary" *ngIf="encounter()">
+      <p>
+        Added <strong>{{ summaryParticipantCount }}</strong> participant(s) to
+        <strong>{{ summaryTitle }}</strong>.
+      </p>
+    </div>
+
+    <span *ngIf="participantError()" class="state error">
+      <span>{{ participantError() }}</span>
+    </span>
+
+    <div class="form-actions">
+      <button type="button" [disabled]="loading()" (click)="saveParticipants()">
+        Save participants
+      </button>
+      <button type="button" class="btn" (click)="addPlayer()">Add another</button>
+    </div>
+  </div>
+</section>

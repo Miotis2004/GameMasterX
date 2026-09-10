@@ -1,0 +1,84 @@
+<section class="dice-roller">
+  <h2>Dice Roller</h2>
+  <p class="hint">
+    Resolve a dice expression through the backend dice subsystem. Rolls are
+    auditable: the individual die values are recorded and, for seeded rolls,
+    reproducible.
+  </p>
+
+  <form [formGroup]="form" class="dice-form" (submit)="roll()">
+    <label>
+      Expression
+      <input formControlName="expression" placeholder="1d20, 2d6+3, 1d20adv" />
+    </label>
+
+    <label>
+      Mode
+      <select formControlName="mode">
+        <option *ngFor="let mode of rollModes" [value]="mode">{{ mode }}</option>
+      </select>
+    </label>
+
+    <label>
+      Seed (seeded only)
+      <input formControlName="seed" placeholder="e.g. combat-round-1" />
+    </label>
+
+    <label>
+      Label
+      <input formControlName="label" placeholder="e.g. Attack roll" />
+    </label>
+
+    <button type="submit" [disabled]="rolling()">
+      {{ rolling() ? 'Rolling…' : 'Roll' }}
+    </button>
+  </form>
+
+  <p *ngIf="error()" class="error">{{ error() }}</p>
+
+  <div *ngIf="rolls().length === 0" class="empty">No rolls yet.</div>
+
+  <article
+    *ngFor="let state of rolls()"
+    class="roll-record"
+    [class.rolling]="rolling()"
+  >
+    <header class="roll-header">
+      <span class="roll-label">
+        {{ state.request.label || state.request.expression }}
+      </span>
+      <span class="roll-mode" *ngIf="state.request.mode">
+        {{ state.request.mode }}
+        <span *ngIf="state.request.seed">· seed: {{ state.request.seed }}</span>
+      </span>
+      <span class="roll-total">Total: {{ state.response.total }}</span>
+    </header>
+
+    <ul class="results">
+      <li *ngFor="let result of state.response.results" class="result">
+        <div class="result-meta">
+          <span class="result-label">{{ result.label }}</span>
+          <span class="result-expr">{{ dieExpression(result) }}</span>
+        </div>
+
+        <div class="result-random">
+          <span class="label">Random values</span>
+          <span class="rolls">
+            <em *ngIf="result.rolls.length === 0">— no values</em>
+            <code *ngFor="let r of result.rolls">{{ r }}</code>
+          </span>
+        </div>
+
+        <div class="result-modifier">
+          <span class="label">Modifier</span>
+          <span class="value">{{ result.modifier }}</span>
+        </div>
+
+        <div class="result-outcome">
+          <span class="label">Outcome</span>
+          <span class="value total">{{ result.total }}</span>
+        </div>
+      </li>
+    </ul>
+  </article>
+</section>

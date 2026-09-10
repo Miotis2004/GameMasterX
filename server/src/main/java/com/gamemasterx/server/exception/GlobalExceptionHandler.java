@@ -158,6 +158,49 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    /**
+     * Maps an optimistic-concurrency rejection (a stale expected revision) to a
+     * consistent {@code 409 CONFLICT} response. This is raised by the encounter
+     * commit coordinator when a concurrent writer has already advanced the
+     * aggregate revision past the caller's expected value, so the caller can
+     * re-read the latest state and retry with the current revision instead of
+     * applying a conflicting change. Because the check runs before anything is
+     * persisted, the rejection also guarantees there is no partial commit.
+     */
+    @ExceptionHandler(OptimisticConcurrencyException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticConcurrency(OptimisticConcurrencyException ex,
+                                                                     HttpServletRequest request) {
+        String correlationId = getCorrelationId(request);
+        ErrorResponse errorResponse = buildErrorResponse(
+                "OPTIMISTIC_CONCURRENCY_CONFLICT", ex.getMessage(), correlationId, null);
+        java.util.Map<String, Object> diagnostics = new java.util.LinkedHashMap<>();
+        diagnostics.put("expectedRevision", ex.getExpectedRevision());
+        diagnostics.put("currentRevision", ex.getCurrentRevision());
+        diagnostics.put("subjectId", ex.getSubjectId());
+        errorResponse.setDiagnostics(diagnostics);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    /**
+     * Maps a rejected multi-document commit to a consistent
+     * {@code 503 SERVICE_UNAVAILABLE} response when the running MongoDB cannot
+     * provide the required transaction capability. The full MongoDB transaction
+     * diagnostic (replica set membership, replica set name, logical-session
+     * support and the detected transaction mode) is surfaced so the operator can
+     * see exactly why the atomic commit is unavailable - for example the server
+     * is a standalone rather than a replica set - and so it is clear that no
+     * partial commit was made: the commit was rejected before any write.
+     */
+    @ExceptionHandler(MongoTransactionUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleMongoTransactionUnavailable(MongoTransactionUnavailableException ex,
+                                                                           HttpServletRequest request) {
+        String correlationId = getCorrelationId(request);
+        ErrorResponse errorResponse = buildErrorResponse(
+                ex.getErrorCode(), ex.getMessage(), correlationId, null);
+        errorResponse.setDiagnostics(ex.getDiagnostics());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
         String correlationId = getCorrelationId(request);

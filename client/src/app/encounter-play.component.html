@@ -1,0 +1,333 @@
+<nav class="crumb">
+  <a routerLink="/dashboard">Dashboard</a> /
+  <a [routerLink]="['/campaigns']">Campaigns</a> /
+  <span *ngIf="encounter()">{{ encounter()?.name || encounter()?.id }}</span>
+</nav>
+
+<section class="play-header" *ngIf="encounter()">
+  <div>
+    <h1>{{ encounter()?.name || encounter()?.id }}</h1>
+    <p class="meta">
+      Round {{ encounter()?.round }} · Turn {{ encounter()?.turn }}
+      · Status: {{ statusOf() }}
+    </p>
+  </div>
+  <div class="status-badge" [class]="statusOf()?.toLowerCase()">{{ statusOf() }}</div>
+</section>
+
+<p *ngIf="!canView()" class="no-role">
+  Unable to determine your campaign role. The encounter is shown in read-only
+  form; the backend enforces any action restrictions.
+</p>
+
+<p *ngIf="error()" class="error">{{ error() }}</p>
+
+<!-- Lifecycle controls -->
+<section class="controls" *ngIf="canManage() && encounter()">
+  <div class="controls-row">
+    <!-- DRAFT phase -->
+    <ng-container *ngIf="statusOf() === 'DRAFT'">
+      <button type="button" (click)="rollInitiative()" [disabled]="applying()">
+        {{ applying() === 'initiative' ? 'Rolling…' : 'Roll Initiative' }}
+      </button>
+      <button type="button" (click)="startEncounter()" [disabled]="applying()">
+        {{ applying() === 'start' ? 'Starting…' : 'Start Encounter' }}
+      </button>
+    </ng-container>
+
+    <!-- ACTIVE / PAUSED phase -->
+    <ng-container *ngIf="statusOf() === 'ACTIVE'">
+      <button type="button" (click)="advanceTurn()" [disabled]="applying()">
+        {{ applying() === 'advance' ? 'Advancing…' : 'Advance Turn' }}
+      </button>
+      <button type="button" (click)="pauseEncounter()" [disabled]="applying()">
+        {{ applying() === 'pause' ? 'Pausing…' : 'Pause' }}
+      </button>
+      <button type="button" class="danger" (click)="completeEncounter()" [disabled]="applying()">
+        {{ applying() === 'complete' ? 'Completing…' : 'Complete' }}
+      </button>
+    </ng-container>
+
+    <ng-container *ngIf="statusOf() === 'PAUSED'">
+      <button type="button" (click)="resumeEncounter()" [disabled]="applying()">
+        {{ applying() === 'resume' ? 'Resuming…' : 'Resume' }}
+      </button>
+      <button type="button" class="danger" (click)="completeEncounter()" [disabled]="applying()">
+        {{ applying() === 'complete' ? 'Completing…' : 'Complete' }}
+      </button>
+    </ng-container>
+  </div>
+  <p class="hint">
+    Pause and resume are presentation controls. The backend authorises each
+    lifecycle transition against your campaign role.
+  </p>
+</section>
+
+<main class="play-layout" *ngIf="canView() && encounter()">
+  <!-- Initiative sidebar -->
+  <aside class="initiative-panel">
+    <h2>Initiative</h2>
+    <ul class="initiative-list">
+      <li
+        *ngFor="let entry of initiativeEntries"
+        class="initiative-item"
+        [class.current]="entry.isActive"
+      >
+        <span class="order">{{ initiativeEntries.indexOf(entry) + 1 }}</span>
+        <span class="name">{{ entry.participant.name || entry.participant.id }}</span>
+        <span class="initiative-value">
+          <span *ngIf="entry.initiative != null">#{{ entry.initiative }}</span>
+          <span *ngIf="entry.initiative == null" class="unranked">—</span>
+        </span>
+      </li>
+    </ul>
+    <p *ngIf="initiativeEntries.length === 0" class="empty">
+      No participants yet.
+    </p>
+  </aside>
+
+  <!-- Center: current actor + actions -->
+  <section class="center-column">
+    <!-- Current actor -->
+    <section class="current-actor" *ngIf="currentParticipant()">
+      <h2>Current Turn</h2>
+      <div class="actor-name">{{ currentParticipant()?.name || currentParticipant()?.id }}</div>
+      <div class="actor-control">{{ currentParticipant()?.actorControl }}</div>
+
+      <!-- Hit points -->
+      <div class="hp-block" *ngIf="currentParticipant()?.hitPoints">
+        <div class="hp-label">
+          HP: {{ hpLabel(currentParticipant()) }}
+        </div>
+        <div class="hp-track">
+          <div class="hp-fill" [class]="hpClass(currentParticipant())" [style.width.%]="hpPercent(currentParticipant())"></div>
+        </div>
+      </div>
+
+      <!-- Damage / healing (GM, active only) -->
+      <div class="hp-controls" *ngIf="canManage() && statusOf() === 'ACTIVE'">
+        <label>
+          Amount
+          <input #hpAmount type="number" min="1" value="1" />
+        </label>
+        <button type="button" (click)="applyDamage(currentParticipant()!, toNumber(hpAmount.value))">
+          Apply Damage
+        </button>
+        <button type="button" (click)="applyHealing(currentParticipant()!, toNumber(hpAmount.value))">
+          Heal
+        </button>
+      </div>
+
+      <!-- Resources -->
+      <div class="resources" *ngIf="currentParticipant()?.resources?.length">
+        <h3>Resources</h3>
+        <ul>
+          <li *ngFor="let r of currentParticipant()?.resources">
+            <span class="res-name">{{ r.name }}</span>
+            <span class="res-value">{{ r.current }} / {{ r.max }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Conditions -->
+      <div class="conditions" *ngIf="currentParticipant()?.conditions?.length">
+        <h3>Conditions</h3>
+        <ul>
+          <li *ngFor="let c of currentParticipant()?.conditions">
+            <span class="cond-name">{{ c.name }}</span>
+            <span class="cond-rounds" *ngIf="c.roundsRemaining != null">{{ c.roundsRemaining }} r</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <p *ngIf="statusOf() === 'ACTIVE' && !currentParticipant()" class="hint">
+      The encounter is active but no turn is currently assigned.
+    </p>
+
+    <!-- Dice roller -->
+    <app-dice-roller></app-dice-roller>
+
+    <!-- Action submission -->
+    <section class="actions" *ngIf="statusOf() === 'ACTIVE'">
+      <h2>Actions</h2>
+      <p class="hint">
+        Actions are resolved and recorded by the backend on the acting
+        participant's turn. A retried submission reuses the same idempotency key
+        and is not rolled or recorded twice.
+      </p>
+
+      <!-- Checks -->
+      <form [formGroup]="checkForm" class="check-form">
+        <label>
+          Kind
+          <select formControlName="kind">
+            <option *ngFor="let kind of checkKinds" [value]="kind">{{ kind }}</option>
+          </select>
+        </label>
+        <label>
+          Actor
+          <select formControlName="actorId">
+            <option *ngFor="let p of encounter()?.participants" [value]="p.id">
+              {{ p.name || p.id }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Ability
+          <select formControlName="abilityName">
+            <option *ngFor="let ability of abilities" [value]="ability">{{ ability }}</option>
+          </select>
+        </label>
+        <label>
+          Ability Score <span class="required">*</span>
+          <input type="number" formControlName="abilityScore" min="1" max="30" />
+        </label>
+        <label>
+          Proficient
+          <select formControlName="proficient">
+            <option [value]="true">Yes</option>
+            <option [value]="false">No</option>
+          </select>
+        </label>
+        <label>
+          Proficiency Bonus
+          <input type="number" formControlName="proficiencyBonus" min="0" />
+        </label>
+        <label>
+          Difficulty Class
+          <input type="number" formControlName="dc" min="1" max="30" placeholder="Optional" />
+        </label>
+        <label>
+          Target
+          <select formControlName="targetId">
+            <option [value]="''">— none —</option>
+            <option *ngFor="let p of encounter()?.participants" [value]="p.id">
+              {{ p.name || p.id }}
+            </option>
+          </select>
+        </label>
+        <button type="submit" (click)="submitCheck()">Resolve Check</button>
+      </form>
+
+      <!-- Attack -->
+      <form [formGroup]="attackForm" class="attack-form">
+        <h3>Attack Roll</h3>
+        <label>
+          Attacker
+          <select formControlName="actorId">
+            <option *ngFor="let p of encounter()?.participants" [value]="p.id">
+              {{ p.name || p.id }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Ability
+          <select formControlName="abilityName">
+            <option *ngFor="let ability of abilities" [value]="ability">{{ ability }}</option>
+          </select>
+        </label>
+        <label>
+          Ability Score <span class="required">*</span>
+          <input type="number" formControlName="abilityScore" min="1" max="30" />
+        </label>
+        <label>
+          Proficient
+          <select formControlName="proficient">
+            <option [value]="true">Yes</option>
+            <option [value]="false">No</option>
+          </select>
+        </label>
+        <label>
+          Proficiency Bonus
+          <input type="number" formControlName="proficiencyBonus" min="0" />
+        </label>
+        <label>
+          Armor Class <span class="required">*</span>
+          <input type="number" formControlName="armorClass" min="1" max="30" />
+        </label>
+        <label>
+          Target
+          <select formControlName="targetId">
+            <option [value]="''">— none —</option>
+            <option *ngFor="let p of encounter()?.participants" [value]="p.id">
+              {{ p.name || p.id }}
+            </option>
+          </select>
+        </label>
+        <button type="submit" (click)="submitAttack()">Resolve Attack</button>
+      </form>
+
+      <!-- Resolved check result -->
+      <article class="result-display" *ngIf="lastCheck()">
+        <h3>Check Result</h3>
+        <div class="result-outcome">
+          {{ outcomeLabel(lastCheck()?.outcome) }} · Total {{ lastCheck()?.total }}
+        </div>
+        <dl class="result-details">
+          <div><dt>Input</dt><dd>{{ lastCheck()?.abilityName }}{{ lastCheck()?.appliesProficiency ? ', proficient' : '' }}</dd></div>
+          <div><dt>Modifiers</dt><dd>
+            <span *ngFor="let m of lastCheck()?.modifiers" class="mod">{{ m.name }} ({{ m.value > 0 ? '+' : '' }}{{ m.value }})</span>
+            <span *ngIf="!(lastCheck()?.modifiers?.length)">none</span>
+          </dd></div>
+          <div><dt>Die (random)</dt><dd>
+            <em *ngIf="lastCheck()?.dieResult?.rolls?.length === 0">— no value</em>
+            <code *ngFor="let r of lastCheck()?.dieResult?.rolls">{{ r }}</code>
+            <span class="expr">{{ lastCheck()?.dieResult?.diceExpression }}</span>
+          </dd></div>
+          <div><dt>Outcome</dt><dd>{{ outcomeLabel(lastCheck()?.outcome) }}{{ lastCheck()?.dc != null ? ' vs DC ' + lastCheck()?.dc : '' }}</dd></div>
+        </dl>
+      </article>
+
+      <!-- Resolved attack result -->
+      <article class="result-display" *ngIf="lastAttack()">
+        <h3>Attack Result</h3>
+        <div class="result-outcome">
+          {{ outcomeLabel(lastAttack()?.outcome) }}
+          <span *ngIf="lastAttack()?.hit"> · Hit</span>
+          <span *ngIf="lastAttack()?.critical"> · Critical</span>
+        </div>
+        <dl class="result-details">
+          <div><dt>Input</dt><dd>{{ lastAttack()?.abilityName }}{{ lastAttack()?.appliesProficiency ? ', proficient' : '' }}</dd></div>
+          <div><dt>Modifiers</dt><dd>
+            <span *ngFor="let m of lastAttack()?.modifiers" class="mod">{{ m.name }} ({{ m.value > 0 ? '+' : '' }}{{ m.value }})</span>
+            <span *ngIf="!(lastAttack()?.modifiers?.length)">none</span>
+          </dd></div>
+          <div><dt>To-hit (random)</dt><dd>
+            <em *ngIf="lastAttack()?.dieResult?.rolls?.length === 0">— no value</em>
+            <code *ngFor="let r of lastAttack()?.dieResult?.rolls">{{ r }}</code>
+            <span class="expr">{{ lastAttack()?.dieResult?.diceExpression }}</span>
+            <span> = {{ lastAttack()?.toHitTotal }}</span>
+            <span> vs AC {{ lastAttack()?.armorClass }}</span>
+          </dd></div>
+          <div><dt>Outcome</dt><dd>{{ outcomeLabel(lastAttack()?.outcome) }}{{ lastAttack()?.critical ? ' (×' + lastAttack()?.criticalDamageMultiplier + ' damage)' : '' }}</dd></div>
+        </dl>
+      </article>
+    </section>
+  </section>
+
+  <!-- Turn history -->
+  <aside class="turns-panel">
+    <h2>Turn History</h2>
+    <ul class="turn-list">
+      <li *ngFor="let turn of turns()" class="turn-record">
+        <div class="turn-header">
+          <span class="turn-round">R{{ turn.round }} · T{{ turn.turnIndex }}</span>
+          <span class="turn-actor">{{ participantName(turn.actingParticipantId) || turn.actingParticipantId || '—' }}</span>
+        </div>
+        <ul class="action-list">
+          <li *ngFor="let action of turn.actions" class="action-record">
+            <span class="action-type">{{ action.type }}</span>
+            <span class="action-target" *ngIf="action.targetName">→ {{ action.targetName }}</span>
+            <span class="action-total">{{ action.total }} · {{ outcomeLabel(action.outcome) }}</span>
+            <span class="action-note" *ngIf="action.note">({{ action.note }})</span>
+          </li>
+          <li *ngIf="turn.actions.length === 0" class="action-empty">
+            Initiative generated (revision {{ turn.revisionBefore }}→{{ turn.revisionAfter }}).
+          </li>
+        </ul>
+      </li>
+    </ul>
+    <p *ngIf="turns().length === 0" class="empty">No turn history yet.</p>
+  </aside>
+</main>

@@ -7,6 +7,7 @@ import com.gamemasterx.server.encounter.model.EncounterStatus;
 import com.gamemasterx.server.encounter.service.EncounterService;
 import com.gamemasterx.server.encounter.model.RulesProfile;
 import com.gamemasterx.server.encounter.service.RulesProfileService;
+import com.gamemasterx.server.encounter.idempotency.IdempotencyService;
 import com.gamemasterx.server.gameplay.model.CheckType;
 import com.gamemasterx.server.exception.AuthorizationException;
 import com.gamemasterx.server.exception.ErrorResponse;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
@@ -75,6 +77,7 @@ public class GameplayController {
     private final EncounterService encounterService;
     private final RulesProfileService rulesProfileService;
     private final MovementRangeService movementRangeService;
+    private final IdempotencyService idempotencyService;
 
     /**
      * Creates the gameplay controller.
@@ -91,12 +94,14 @@ public class GameplayController {
                               GameplayAuditService gameplayAuditService,
                               EncounterService encounterService,
                               RulesProfileService rulesProfileService,
-                              MovementRangeService movementRangeService) {
+                              MovementRangeService movementRangeService,
+                              IdempotencyService idempotencyService) {
         this.gameplayRulesService = gameplayRulesService;
         this.gameplayAuditService = gameplayAuditService;
         this.encounterService = encounterService;
         this.rulesProfileService = rulesProfileService;
         this.movementRangeService = movementRangeService;
+        this.idempotencyService = idempotencyService;
     }
 
     /**
@@ -106,16 +111,43 @@ public class GameplayController {
      * @param httpRequest the incoming request, used for the authenticated actor
      * @return the 200 response carrying the {@link ResolvedCheck}
      */
+    /**
+     * The revision of the owning encounter the caller expects the action to be
+     * resolved against, or {@code null} to resolve against the current revision.
+     * When supplied and an encounter is present the encounter's stored revision
+     * must match before the action is resolved; a stale expectation is rejected
+     * with a {@code 409 CONFLICT} via the shared global handler.</p>
+     */
+    /**
+     * The caller-supplied idempotency key. When supplied and the key has already
+     * completed a successful action, the previously recorded outcome is returned
+     * and the action is not resolved, rolled or recorded again, so a retried
+     * request can never double-roll its dice or double-record its turn.</p>
+     */
     @PostMapping("/ability-check")
-    public ResponseEntity<ResolvedCheck> abilityCheck(@Valid @RequestBody CheckRequest request,
-                                                     HttpServletRequest httpRequest) {
+    public ResponseEntity<ResolvedCheck> abilityCheck(
+            @Valid @RequestBody CheckRequest request,
+            @RequestParam(value = "expectedRevision", required = false) Long expectedRevision,
+            @RequestParam(value = "idempotencyKey", required = false) String idempotencyKey,
+            HttpServletRequest httpRequest) {
+        String actor = requireActor(httpRequest);
+        // A retried request carrying a completed key is answered from the
+        // backend-owned idempotency store without re-rolling or re-recording.
+        ResolvedCheck prior = idempotencyService.peekCompleted(idempotencyKey, ResolvedCheck.class);
+        if (prior != null) {
+            return ResponseEntity.ok(prior);
+        }
         // Load and gate the action before anything is resolved: when an
         // encounter is supplied, availability and turn ownership are enforced
         // server-side and the encounter is returned for the audit path.
-        EncounterDto dto = loadEncounterForAction(request.encounterId(), requireActor(httpRequest));
+        EncounterDto dto = loadEncounterForAction(
+                request.encounterId(), actor, expectedRevision);
         CheckInput input = toInput(request, CheckType.ABILITY_CHECK);
         ResolvedCheck resolved = gameplayRulesService.resolveAbilityCheck(input);
-        return ResponseEntity.ok(persistCheck(resolved, request, httpRequest, dto));
+        persistCheck(resolved, request, httpRequest, dto);
+        recordIdempotency(idempotencyKey, request.encounterId(),
+                "ability-check", actor, resolved);
+        return ResponseEntity.ok(resolved);
     }
 
     /**
@@ -126,12 +158,24 @@ public class GameplayController {
      * @return the 200 response carrying the {@link ResolvedCheck}
      */
     @PostMapping("/skill-check")
-    public ResponseEntity<ResolvedCheck> skillCheck(@Valid @RequestBody CheckRequest request,
-                                                    HttpServletRequest httpRequest) {
-        EncounterDto dto = loadEncounterForAction(request.encounterId(), requireActor(httpRequest));
+    public ResponseEntity<ResolvedCheck> skillCheck(
+            @Valid @RequestBody CheckRequest request,
+            @RequestParam(value = "expectedRevision", required = false) Long expectedRevision,
+            @RequestParam(value = "idempotencyKey", required = false) String idempotencyKey,
+            HttpServletRequest httpRequest) {
+        String actor = requireActor(httpRequest);
+        ResolvedCheck prior = idempotencyService.peekCompleted(idempotencyKey, ResolvedCheck.class);
+        if (prior != null) {
+            return ResponseEntity.ok(prior);
+        }
+        EncounterDto dto = loadEncounterForAction(
+                request.encounterId(), actor, expectedRevision);
         CheckInput input = toInput(request, CheckType.SKILL_CHECK);
         ResolvedCheck resolved = gameplayRulesService.resolveSkillCheck(input);
-        return ResponseEntity.ok(persistCheck(resolved, request, httpRequest, dto));
+        persistCheck(resolved, request, httpRequest, dto);
+        recordIdempotency(idempotencyKey, request.encounterId(),
+                "skill-check", actor, resolved);
+        return ResponseEntity.ok(resolved);
     }
 
     /**
@@ -142,12 +186,24 @@ public class GameplayController {
      * @return the 200 response carrying the {@link ResolvedCheck}
      */
     @PostMapping("/saving-throw")
-    public ResponseEntity<ResolvedCheck> savingThrow(@Valid @RequestBody CheckRequest request,
-                                                     HttpServletRequest httpRequest) {
-        EncounterDto dto = loadEncounterForAction(request.encounterId(), requireActor(httpRequest));
+    public ResponseEntity<ResolvedCheck> savingThrow(
+            @Valid @RequestBody CheckRequest request,
+            @RequestParam(value = "expectedRevision", required = false) Long expectedRevision,
+            @RequestParam(value = "idempotencyKey", required = false) String idempotencyKey,
+            HttpServletRequest httpRequest) {
+        String actor = requireActor(httpRequest);
+        ResolvedCheck prior = idempotencyService.peekCompleted(idempotencyKey, ResolvedCheck.class);
+        if (prior != null) {
+            return ResponseEntity.ok(prior);
+        }
+        EncounterDto dto = loadEncounterForAction(
+                request.encounterId(), actor, expectedRevision);
         CheckInput input = toInput(request, CheckType.SAVING_THROW);
         ResolvedCheck resolved = gameplayRulesService.resolveSavingThrow(input);
-        return ResponseEntity.ok(persistCheck(resolved, request, httpRequest, dto));
+        persistCheck(resolved, request, httpRequest, dto);
+        recordIdempotency(idempotencyKey, request.encounterId(),
+                "saving-throw", actor, resolved);
+        return ResponseEntity.ok(resolved);
     }
 
     /**
@@ -166,18 +222,31 @@ public class GameplayController {
      * @return the 200 response carrying the {@link ResolvedAttack}
      */
     @PostMapping("/attack")
-    public ResponseEntity<ResolvedAttack> attack(@Valid @RequestBody AttackRequest request,
-                                                 HttpServletRequest httpRequest) {
+    public ResponseEntity<ResolvedAttack> attack(
+            @Valid @RequestBody AttackRequest request,
+            @RequestParam(value = "expectedRevision", required = false) Long expectedRevision,
+            @RequestParam(value = "idempotencyKey", required = false) String idempotencyKey,
+            HttpServletRequest httpRequest) {
         // Authenticate the actor before anything else.
         String actor = requireActor(httpRequest);
+
+        // A retried request carrying a completed key is answered from the
+        // backend-owned idempotency store without re-rolling, re-comparing
+        // against the armour class or re-recording the turn.
+        ResolvedAttack prior = idempotencyService.peekCompleted(idempotencyKey, ResolvedAttack.class);
+        if (prior != null) {
+            return ResponseEntity.ok(prior);
+        }
 
         // Load the owning encounter first. The critical-hit verdict is governed
         // exclusively by the encounter's stored, validated, supported rules
         // profile; it is never taken from a value that could be supplied or
         // overridden on the attack request wire. Loading also enforces turn
         // ownership and action availability (see
-        // #loadEncounterForAction) before any attack is resolved.
-        EncounterDto dto = loadEncounterForAction(request.encounterId(), actor);
+        // #loadEncounterForAction) before any attack is resolved. The expected
+        // revision, when supplied, is checked here so a stale expectation is
+        // rejected before any attack is resolved.
+        EncounterDto dto = loadEncounterForAction(request.encounterId(), actor, expectedRevision);
 
         // Enforce turn-ownership and action-availability, and reject any
         // request-supplied rules profile that disagrees with the encounter's
@@ -201,7 +270,10 @@ public class GameplayController {
         AttackInput input = toInput(request, governing);
         ResolvedAttack resolved = gameplayRulesService.resolveAttack(input);
 
-        return ResponseEntity.ok(persistAttack(resolved, dto, request, httpRequest, range));
+        persistAttack(resolved, dto, request, httpRequest, range);
+        recordIdempotency(idempotencyKey, dto != null ? dto.getId() : request.encounterId(),
+                "attack", actor, resolved);
+        return ResponseEntity.ok(resolved);
     }
 
     /**
@@ -260,23 +332,48 @@ public class GameplayController {
      * no encounter-scoped turn ownership or availability can be checked and
      * {@code null} is returned, preserving the "record without an encounter"
      * behaviour. When an encounter is supplied it is loaded for the actor and
-     * passed through {@link #assertActionAvailableToActor} before anything is
-     * resolved; a violation is rejected with a clear {@link IllegalArgumentException}
-     * that the controller maps to a {@code 400 BAD_REQUEST}.</p>
+     * passed through {@link #assertActionAvailableToActor} and the
+     * {@code expectedRevision} guard before anything is resolved; a violation is
+     * rejected with a clear {@link IllegalArgumentException} that the controller
+     * maps to a {@code 400 BAD_REQUEST} (and a revision mismatch to a {@code 409
+     * CONFLICT} via the global handler).</p>
      *
      * @param encounterId the owning encounter identifier, or {@code null}/blank
      *                    to record an encounter-less check
      * @param actor       the authenticated actor submitting the action
+     * @param expectedRevision the revision the caller expects, or {@code null}
+     *                    to resolve against the current revision
      * @return the owning encounter when one was supplied and permitted, or
      *         {@code null} when the check is encounter-less
      */
-    private EncounterDto loadEncounterForAction(String encounterId, String actor) {
+    private EncounterDto loadEncounterForAction(String encounterId, String actor, Long expectedRevision) {
         if (encounterId == null || encounterId.isBlank()) {
             return null;
         }
         EncounterDto dto = encounterService.findById(encounterId, actor);
+        assertExpectedRevision(dto, expectedRevision);
         assertActionAvailableToActor(dto, actor);
         return dto;
+    }
+
+    /**
+     * Enforces an optimistic-concurrency expectation on the owning encounter's
+     * stored revision. A check does not mutate the encounter, so the "revision
+     * before" and "revision after" are equal; the guard simply ensures the
+     * actor is acting against the encounter revision they expect. A {@code null}
+     * expectation is a no-op (resolve against the current revision).
+     *
+     * @param dto            the owning encounter, already loaded for the actor
+     * @param expectedRevision the revision the caller expects, or {@code null}
+     */
+    private void assertExpectedRevision(EncounterDto dto, Long expectedRevision) {
+        if (expectedRevision == null) {
+            return;
+        }
+        if (dto.getRevision() != expectedRevision.intValue()) {
+            throw new com.gamemasterx.server.exception.OptimisticConcurrencyException(
+                    dto.getId(), expectedRevision.intValue(), dto.getRevision());
+        }
     }
 
     /**
@@ -291,9 +388,8 @@ public class GameplayController {
      * @param request  the originating request (carries the encounter context)
      * @param httpRequest the incoming request, used for the authenticated actor
      * @param dto      the owning encounter, or {@code null} when encounter-less
-     * @return the 200 response carrying the resolved check
      */
-    private ResolvedCheck persistCheck(ResolvedCheck resolved, CheckRequest request,
+    private void persistCheck(ResolvedCheck resolved, CheckRequest request,
                                        HttpServletRequest httpRequest, EncounterDto dto) {
         String actor = requireActor(httpRequest);
 
@@ -337,7 +433,6 @@ public class GameplayController {
                 Instant.now(),
                 Instant.now());
         gameplayAuditService.appendTurn(turn);
-        return resolved;
     }
 
     /**
@@ -439,9 +534,9 @@ public class GameplayController {
      * @param dto       the owning encounter (already validated)
      * @param request   the originating request (carries the encounter context)
      * @param httpRequest the incoming request, used for the authenticated actor
-     * @return the resolved attack, unchanged
+     * @param range     the resolved attack range, or {@code null}
      */
-    private ResolvedAttack persistAttack(ResolvedAttack resolved, EncounterDto dto,
+    private void persistAttack(ResolvedAttack resolved, EncounterDto dto,
                                          AttackRequest request, HttpServletRequest httpRequest,
                                          ResolvedRange range) {
         String actor = requireActor(httpRequest);
@@ -492,7 +587,6 @@ public class GameplayController {
                 revisionAfter,
                 actor,
                 getCorrelationId(httpRequest));
-        return resolved;
     }
 
     /**
@@ -690,6 +784,26 @@ public class GameplayController {
             IllegalArgumentException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(buildBadRequest(ex.getMessage(), request));
+    }
+
+    /**
+     * Records the outcome of a successfully committed guarded action under its
+     * idempotency key, so any later retry of the same key is answered from this
+     * store. A blank or {@code null} key is a no-op; a concurrent retry that
+     * completed first is a harmless no-op rather than an error.</p>
+     *
+     * @param idempotencyKey the caller-supplied idempotency key, or {@code null}
+     * @param encounterId the enclosing encounter, or {@code null}
+     * @param operation a short operation label for diagnostics
+     * @param actor the authenticated actor submitting the action
+     * @param outcome the outcome to record
+     */
+    private void recordIdempotency(String idempotencyKey, String encounterId,
+                                   String operation, String actor, Object outcome) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            return;
+        }
+        idempotencyService.complete(idempotencyKey, encounterId, operation, actor, outcome);
     }
 
     private static ErrorResponse buildBadRequest(String message, HttpServletRequest request) {

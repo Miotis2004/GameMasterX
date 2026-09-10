@@ -59,6 +59,8 @@ export interface Participant {
   actorControl: ActorControl;
   initiative: number | null;
   position: Position | null;
+  /** The participant's available movement, in grid squares. */
+  movementSpeed: number;
   hitPoints: HitPoints | null;
   conditions: Condition[];
   resources: Resource[];
@@ -99,6 +101,8 @@ export interface ParticipantCreateRequest {
   actorControl: ActorControl;
   initiative: number | null;
   position: Position | null;
+  /** The participant's available movement, in grid squares. */
+  movementSpeed: number;
   hitPoints: HitPoints | null;
   conditions: Condition[];
   resources: Resource[];
