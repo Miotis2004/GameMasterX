@@ -1,5 +1,6 @@
 package com.gamemasterx.server.health;
 
+import com.gamemasterx.server.ai.health.AiProviderHealthIndicator;
 import com.mongodb.client.MongoClient;
 import org.bson.Document;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,9 +16,13 @@ import java.util.Map;
 public class HealthController {
 
     private final MongoClient mongoClient;
+    private final AiProviderHealthIndicator aiProviderHealthIndicator;
 
-    public HealthController(MongoClient mongoClient) {
+    public HealthController(
+            MongoClient mongoClient,
+            AiProviderHealthIndicator aiProviderHealthIndicator) {
         this.mongoClient = mongoClient;
+        this.aiProviderHealthIndicator = aiProviderHealthIndicator;
     }
 
     private Map<String, Object> buildEnvelope(String status, String message, Map<String, Object> details) {
@@ -46,6 +51,9 @@ public class HealthController {
             mongoMessage = reachable ? "MongoDB connection is healthy" : "MongoDB ping returned no result";
         } catch (Exception e) {
             mongoMessage = "MongoDB connection failed: " + e.getMessage();
+        }
+        if (aiProviderHealthIndicator != null) {
+            details.put("ai", aiProviderHealthIndicator.health().get("provider"));
         }
         details.put("mongodb", Map.of(
                 "status", reachable ? "UP" : "DOWN",

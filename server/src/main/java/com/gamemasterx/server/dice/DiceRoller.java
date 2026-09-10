@@ -2,7 +2,6 @@ package com.gamemasterx.server.dice;
 
 import com.gamemasterx.server.dice.DiceExpression.Advantage;
 import com.gamemasterx.server.gameplay.model.DiceResult;
-import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -34,8 +33,11 @@ import java.util.Objects;
  * that were drawn for the group, the {@link DiceResult#modifier()} and the
  * resulting {@link DiceResult#total()}. This makes every roll both auditable
  * (the random values are preserved) and, in seeded mode, reproducible.</p>
+ *
+ * <p>Note: this class is intentionally <em>not</em> a Spring component. It is a
+ * plain utility constructed with explicit arguments (see {@link DiceConfig} for
+ * the single shared instance and the per-call {@code new} sites).</p>
  */
-@Component
 public final class DiceRoller {
 
     /**
