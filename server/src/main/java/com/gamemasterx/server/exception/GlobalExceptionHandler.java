@@ -14,6 +14,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 
 import com.gamemasterx.server.adventure.AdventureImportConflictException;
 import com.gamemasterx.server.character.CharacterSheetValidationException;
+import com.gamemasterx.server.dice.DiceExpressionException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,6 +79,30 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = buildErrorResponse(
                 "CONFLICT", ex.getMessage() == null ? "Adventure already exists" : ex.getMessage(), correlationId, fieldErrors);
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
+    /**
+     * Maps a deterministic, input-driven {@link DiceExpressionException} to a
+     * consistent {@code 400 BAD_REQUEST} response tagged with the offending
+     * {@link DiceExpressionException#getField()}. This is declared before the
+     * generic {@link Exception} handler below so a malformed dice expression is
+     * reported as a client error rather than a 500. Note that
+     * {@code DiceExpressionException} extends {@link IllegalStateException}, so
+     * without this handler it would fall through to the generic handler.
+     */
+    @ExceptionHandler(DiceExpressionException.class)
+    public ResponseEntity<ErrorResponse> handleDiceExpressionException(DiceExpressionException ex,
+                                                                        HttpServletRequest request) {
+        String correlationId = getCorrelationId(request);
+        List<com.gamemasterx.server.exception.FieldError> fieldErrors = new ArrayList<>();
+        String field = ex.getField();
+        if (field != null && !field.isBlank()) {
+            fieldErrors.add(new com.gamemasterx.server.exception.FieldError(field, ex.getMessage()));
+        }
+        ErrorResponse errorResponse = buildErrorResponse(
+                "VALIDATION_ERROR", ex.getMessage() == null ? "Dice expression is invalid" : ex.getMessage(),
+                correlationId, fieldErrors);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(CharacterSheetValidationException.class)
