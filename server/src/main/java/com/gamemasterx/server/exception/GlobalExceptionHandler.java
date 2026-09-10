@@ -15,6 +15,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import com.gamemasterx.server.adventure.AdventureImportConflictException;
 import com.gamemasterx.server.character.CharacterSheetValidationException;
 import com.gamemasterx.server.dice.DiceExpressionException;
+import com.gamemasterx.server.ai.operation.validate.OperationValidationException;
+import com.gamemasterx.server.ai.operation.validate.OperationValidationError;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -199,6 +201,39 @@ public class GlobalExceptionHandler {
                 ex.getErrorCode(), ex.getMessage(), correlationId, null);
         errorResponse.setDiagnostics(ex.getDiagnostics());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
+    }
+
+    /**
+     * Maps a rejected AI-proposed operation to a consistent {@code 400 BAD_REQUEST}
+     * response. The rejection names every validation dimension that failed
+     * (schema, entity existence, authorization, actor control, legal action,
+     * target, range, resources, expected revision, idempotency, numeric
+     * agreement and secret disclosure), so a caller can see exactly why the
+     * backend refused to execute the proposal. Because the check runs before any
+     * deterministic execution, the rejection also guarantees there is no partial
+     * commit.
+     */
+    @ExceptionHandler(OperationValidationException.class)
+    public ResponseEntity<ErrorResponse> handleOperationValidationException(OperationValidationException ex,
+                                                                            HttpServletRequest request) {
+        String correlationId = getCorrelationId(request);
+        List<com.gamemasterx.server.exception.FieldError> fieldErrors = new ArrayList<>();
+        for (OperationValidationError error : ex.errors()) {
+            if (error.field() != null && !error.field().isBlank()) {
+                fieldErrors.add(new com.gamemasterx.server.exception.FieldError(error.field(), error.message()));
+            }
+        }
+        ErrorResponse errorResponse = buildErrorResponse(
+                "VALIDATION_ERROR", ex.getMessage() == null ? "The proposed operation failed validation" : ex.getMessage(),
+                correlationId, fieldErrors);
+        java.util.Map<String, Object> diagnostics = new java.util.LinkedHashMap<>();
+        java.util.List<String> dimensions = new java.util.ArrayList<>();
+        for (OperationValidationError error : ex.errors()) {
+            dimensions.add(error.dimension().name());
+        }
+        diagnostics.put("failedDimensions", dimensions);
+        errorResponse.setDiagnostics(diagnostics);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)

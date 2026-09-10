@@ -26,6 +26,8 @@ public enum ActionType {
     REST_LONG,
     /** A general ability check. */
     ABILITY_CHECK,
+    /** Narrative context appended around an action, carrying no participant state change. */
+    NARRATIVE,
     /** Any action not covered by the categories above. */
     OTHER
 }

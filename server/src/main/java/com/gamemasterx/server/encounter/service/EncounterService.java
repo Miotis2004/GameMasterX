@@ -958,6 +958,166 @@ public class EncounterService {
                         beforeMap, afterMap, Instant.now())));
     }
 
+    /**
+     * Changes the quantity of a named resource on a participant (ACTIVE).
+     * The caller must hold the {@link MembershipRole#GAME_MASTER} role. The
+     * resulting quantity must remain within the resource's legal {@code [0, max]}
+     * bounds; an out-of-range change is rejected and no resource change is
+     * applied.
+     *
+     * @param encounterId   the stable encounter identifier
+     * @param participantId the id of the participant whose resource changes
+     * @param resourceName  the name of the resource to change (case-insensitive)
+     * @param delta         the signed change to apply
+     * @param note          a free-form note on the change, or {@code null}
+     * @param actor         the authenticated game master
+     * @param idempotencyKey the caller-supplied idempotency key, or {@code null}
+     * @return the updated encounter
+     * @throws IllegalArgumentException when the encounter, participant or resource
+     *                                  is missing, or the change would take the
+     *                                  resource outside its legal bounds
+     */
+    public EncounterDto changeResource(String encounterId, String participantId,
+                                       String resourceName, int delta, String note,
+                                       String actor, String idempotencyKey) {
+        String resolvedParticipant = requireNonBlank(participantId, "participantId");
+        String resolvedResource = requireNonBlank(resourceName, "resourceName");
+        Encounter encounter = requireEncounter(encounterId);
+        ensureAccessible(actor, encounter);
+        requireEncounterActiveForGameplay(encounter);
+        Encounter.Participant participant = requireParticipant(encounter, resolvedParticipant);
+        Encounter.Resource resource = findResource(participant, resolvedResource);
+        if (resource == null) {
+            throw new IllegalArgumentException(
+                    "Participant " + resolvedParticipant + " has no resource named '" + resolvedResource + "'");
+        }
+        int resulting = resource.getCurrent() + delta;
+        if (resulting < 0 || resulting > resource.getMax()) {
+            throw new IllegalArgumentException(
+                    "Changing '" + resolvedResource + "' by " + delta + " would take it from "
+                            + resource.getCurrent() + " to " + resulting
+                            + ", outside the legal [0, " + resource.getMax() + "] range");
+        }
+        int revisionBefore = encounter.getRevision();
+        Map<String, Object> before = new HashMap<>();
+        before.put("current", resource.getCurrent());
+        Map<String, Object> after = new HashMap<>();
+        after.put("current", resulting);
+        String description = "Changed '" + resource.getName() + "' by " + delta + noteSuffix(note);
+        Action action = new Action(
+                null, ActionType.OTHER, actor, resolvedParticipant,
+                participant.getName(), "resource", List.of(new Modifier("resource", delta)), List.of(),
+                delta, delta, ActionOutcome.SUCCESS, description, Instant.now());
+        resource.setCurrent(resulting);
+        return mutate(encounter, actor, revisionBefore, action,
+                List.of(new Mutation(null, "resource", resolvedParticipant, description, before, after, Instant.now())),
+                null, idempotencyKey);
+    }
+
+    /**
+     * Sets a boolean state flag on a participant (ACTIVE). The caller must hold
+     * the {@link MembershipRole#GAME_MASTER} role. The flag is stored on the
+     * participant and recorded in the immutable turn and audit history as an
+     * accepted mutation capturing the before/after value.
+     *
+     * @param encounterId   the stable encounter identifier
+     * @param participantId the id of the participant whose state changes
+     * @param stateName     the name of the boolean state flag to set
+     * @param value         the value to set the flag to
+     * @param note          a free-form note on the change, or {@code null}
+     * @param actor         the authenticated caller
+     * @param idempotencyKey the caller-supplied idempotency key, or {@code null}
+     * @return the updated encounter
+     * @throws IllegalArgumentException when the encounter or participant is
+     *                                  missing
+     */
+    public EncounterDto setState(String encounterId, String participantId,
+                                 String stateName, Boolean value, String note,
+                                 String actor, String idempotencyKey) {
+        String resolvedParticipant = requireNonBlank(participantId, "participantId");
+        String resolvedState = requireNonBlank(stateName, "stateName");
+        Encounter encounter = requireEncounter(encounterId);
+        ensureAccessible(actor, encounter);
+        requireEncounterActiveForGameplay(encounter);
+        Encounter.Participant participant = requireParticipant(encounter, resolvedParticipant);
+        int revisionBefore = encounter.getRevision();
+        Boolean previous = participant.getStates().get(resolvedState);
+        participant.getStates().put(resolvedState, (value != null) ? value : false);
+        Map<String, Object> before = new HashMap<>();
+        before.put("state", resolvedState);
+        before.put("value", previous);
+        Map<String, Object> after = new HashMap<>();
+        after.put("state", resolvedState);
+        after.put("value", value);
+        String description = "Set state '" + resolvedState + "' to " + value + noteSuffix(note);
+        Action action = new Action(
+                null, ActionType.OTHER, actor, resolvedParticipant,
+                participant.getName(), "state", List.of(), List.of(),
+                0, 0, ActionOutcome.SUCCESS, description, Instant.now());
+        return mutate(encounter, actor, revisionBefore, action,
+                List.of(new Mutation(null, "state", resolvedParticipant, description, before, after, Instant.now())),
+                null, idempotencyKey);
+    }
+
+    /**
+     * Loads the owning encounter for an AI-proposed operation and asserts that
+     * the actor is permitted to access it. This is the backend-authoritative
+     * access gate shared by the AI-operation validation path: the raw aggregate
+     * is returned so every validation dimension observes the same document that
+     * the deterministic commit will mutate.
+     *
+     * @param encounterId the stable encounter identifier
+     * @param actor       the authenticated caller
+     * @return the owning encounter, already access-checked
+     * @throws IllegalArgumentException when no such encounter exists
+     * @throws AuthorizationException   when the actor lacks access
+     */
+    public Encounter loadForOperation(String encounterId, String actor) {
+        Encounter encounter = requireEncounter(encounterId);
+        ensureAccessible(actor, encounter);
+        return encounter;
+    }
+
+    /**
+     * Appends free-form narrative context around an action for an AI-proposed
+     * {@code NARRATE} operation. Narrative adds context to the immutable turn and
+     * audit history without changing any participant state. The caller must hold
+     * at least the {@link MembershipRole#OBSERVER} role; the narrative itself
+     * carries no participant-scoped effect.
+     *
+     * @param encounterId    the stable encounter identifier
+     * @param text           the narrative text to record, or {@code null}
+     * @param actor          the authenticated caller
+     * @param idempotencyKey the caller-supplied idempotency key, or {@code null}
+     * @return the updated encounter
+     * @throws IllegalArgumentException when the encounter is missing
+     */
+    public EncounterDto applyNarrative(String encounterId, String text, String actor,
+                                       Long expectedRevision, String idempotencyKey) {
+        Encounter encounter = requireEncounter(encounterId);
+        ensureAccessible(actor, encounter);
+        int revisionBefore = encounter.getRevision();
+        String description = (text != null && !text.isBlank()) ? text : "Narrative context";
+        Action action = new Action(
+                null, ActionType.NARRATIVE, actor, null, null, "narrative",
+                List.of(), List.of(), 0, 0, ActionOutcome.SUCCESS, description, Instant.now());
+        Map<String, Object> before = java.util.Map.of("narrative", null);
+        Map<String, Object> after = java.util.Map.of("narrative", description);
+        return mutate(encounter, actor, revisionBefore, action,
+                List.of(new Mutation(null, "narrative", null, description, before, after, Instant.now())),
+                expectedRevision, idempotencyKey);
+    }
+
+    private static Encounter.Resource findResource(Encounter.Participant participant, String resourceName) {
+        for (Encounter.Resource r : participant.getResources()) {
+            if (r.getName() != null && r.getName().equalsIgnoreCase(resourceName)) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+
     private List<String> conditionNames(Encounter.Participant participant) {
         List<String> names = new ArrayList<>();
         for (Encounter.Condition c : participant.getConditions()) {

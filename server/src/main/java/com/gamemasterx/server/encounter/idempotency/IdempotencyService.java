@@ -100,6 +100,25 @@ public class IdempotencyService {
     }
 
     /**
+     * Returns {@code true} when the supplied idempotency key has already
+     * completed a successful operation. This lets the orchestrating
+     * {@link com.gamemasterx.server.ai.operation.validate.OperationValidator}
+     * report a repeated key without re-applying its effect: a repeat is not an
+     * error, but it must never run the guarded operation a second time.
+     *
+     * @param key the caller-supplied idempotency key
+     * @return {@code true} when the key has already completed a successful
+     *         operation
+     */
+    public boolean isCompleted(String key) {
+        if (key == null || key.isBlank()) {
+            return false;
+        }
+        Optional<IdempotencyRecord> record = idempotencyRepository.findByKey(key);
+        return record.isPresent() && COMPLETED_STATUS.equals(record.get().status());
+    }
+
+    /**
      * Records the completed outcome of a guarded operation so that any later
      * retry of the same key is answered from this record.
      *

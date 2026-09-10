@@ -454,11 +454,19 @@ public class Encounter {
         private HitPoints hitPoints;
         private List<Condition> conditions;
         private List<Resource> resources;
+        /**
+         * Free-form boolean flags a participant may carry (for example a
+         * {@code stealthed} or {@code hidden} state toggled by a {@code
+         * SET_STATE} operation). Backed by an insertion-ordered map so the
+         * state survives serialization in a stable order.
+         */
+        private java.util.Map<String, Boolean> states;
 
         public Participant() {
             this.actorControl = ActorControl.SELF;
             this.conditions = new ArrayList<>();
             this.resources = new ArrayList<>();
+            this.states = new java.util.LinkedHashMap<>();
         }
 
         public Participant(String id, String name, ActorControl actorControl) {
@@ -467,6 +475,7 @@ public class Encounter {
             this.actorControl = (actorControl != null) ? actorControl : ActorControl.SELF;
             this.conditions = new ArrayList<>();
             this.resources = new ArrayList<>();
+            this.states = new java.util.LinkedHashMap<>();
         }
 
         public String getId() {
@@ -539,6 +548,17 @@ public class Encounter {
 
         public void setResources(List<Resource> resources) {
             this.resources = (resources != null) ? resources : new ArrayList<>();
+        }
+
+        /**
+         * @return the participant's boolean state flags, never {@code null}
+         */
+        public java.util.Map<String, Boolean> getStates() {
+            return states;
+        }
+
+        public void setStates(java.util.Map<String, Boolean> states) {
+            this.states = (states != null) ? states : new java.util.LinkedHashMap<>();
         }
     }
 

@@ -95,6 +95,9 @@ public class EncounterDto {
                     r.getDescription()));
         }
         dto.resources = resources;
+        if (p.getStates() != null) {
+            dto.states = new java.util.LinkedHashMap<>(p.getStates());
+        }
         return dto;
     }
 
@@ -216,6 +219,8 @@ public class EncounterDto {
         private HitPointsDto hitPoints;
         private List<ConditionDto> conditions;
         private List<ResourceDto> resources;
+        /** Free-form boolean state flags carried by the participant. */
+        private java.util.Map<String, Boolean> states;
 
         public ParticipantDto() {
         }
@@ -290,6 +295,17 @@ public class EncounterDto {
 
         public void setResources(List<ResourceDto> resources) {
             this.resources = resources;
+        }
+
+        /**
+         * @return the participant's boolean state flags, or {@code null}
+         */
+        public java.util.Map<String, Boolean> getStates() {
+            return states;
+        }
+
+        public void setStates(java.util.Map<String, Boolean> states) {
+            this.states = states;
         }
     }
 
