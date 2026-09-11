@@ -33,7 +33,6 @@ export class FirstRunSetupComponent {
     this.auth.setupAdmin(email!, email!, password!).subscribe({
       next: () => {
         this.loading = false;
-        localStorage.setItem('adminSetupDone', 'true');
         this.router.navigate(['/login']);
       },
       error: (err) => {

@@ -92,7 +92,7 @@ public class InventoryAuditService {
      * @return the next monotonic audit sequence number (0 when the log is empty)
      */
     private long nextAuditSequence() {
-        Optional<InventoryAudit> last = auditRepository.findByFirstByOrderByAuditSequenceDesc();
+        Optional<InventoryAudit> last = auditRepository.findFirstByOrderByAuditSequenceDesc();
         long current = last.map(InventoryAudit::auditSequence).orElse(-1L);
         return current + 1L;
     }

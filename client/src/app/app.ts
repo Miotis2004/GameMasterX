@@ -15,12 +15,5 @@ export class App implements OnInit {
   constructor(private status: StatusService, private router: Router) {}
 
   ngOnInit() {
-    // Simple polling to detect session expiration and redirect
-    setInterval(() => {
-      if (this.status.unauthorized()) {
-        this.status.setError('Session expired. Please log in again.');
-        this.router.navigate(['/login']);
-      }
-    }, 1000);
   }
 }

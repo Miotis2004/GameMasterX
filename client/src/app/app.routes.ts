@@ -18,7 +18,7 @@ export const routes: Routes = [
   {
     path: '',
     component: ShellComponent,
-    canActivate: [AuthGuard, FirstRunGuard],
+    canActivate: [FirstRunGuard, AuthGuard],
     children: [
       {
         path: 'dashboard',

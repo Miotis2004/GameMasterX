@@ -96,6 +96,6 @@ export class NarrativeFacadeService {
     if (!campaignId) {
       throw new Error('No campaign selected');
     }
-    return this.http.post(`http://localhost:5172/api/campaigns/${campaignId}/actions`, { action }, { withCredentials: true });
+    return this.http.post(`http://localhost:5172/api/campaigns/${campaignId}/actions`, { action });
   }
 }

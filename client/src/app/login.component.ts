@@ -41,12 +41,15 @@ export class LoginComponent implements OnInit {
     }
     this.loading = true;
     const { username, password } = this.form.value;
-    this.auth.login(username!, password!);
-    setTimeout(() => {
-      this.loading = false;
-      if (this.auth.getIsAuthenticated()) {
+
+    this.auth.login(username!, password!).subscribe({
+      next: () => {
+        this.loading = false;
         this.router.navigate(['/dashboard']);
+      },
+      error: () => {
+        this.loading = false;
       }
-    }, 300);
+    });
   }
 }

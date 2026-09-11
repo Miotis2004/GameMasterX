@@ -25,7 +25,7 @@ public class AuthFilter extends OncePerRequestFilter {
         String method = request.getMethod().toUpperCase();
         String path = request.getRequestURI();
 
-        boolean isPublic = path.startsWith("/api/auth") || path.startsWith("/api/csrf");
+        boolean isPublic = isPublicPath(method, path);
 
         HttpSession session = request.getSession(false);
         String userId = null;
@@ -85,5 +85,14 @@ public class AuthFilter extends OncePerRequestFilter {
         } finally {
             MDC.remove("userId");
         }
+    }
+
+    private boolean isPublicPath(String method, String path) {
+        if ("GET".equals(method) && "/api/admin/setup/status".equals(path)) return true;
+        if ("POST".equals(method) && "/api/admin/setup".equals(path)) return true;
+        if ("GET".equals(method) && "/api/auth/session".equals(path)) return true;
+        if ("POST".equals(method) && "/api/auth/login".equals(path)) return true;
+        if ("GET".equals(method) && "/api/csrf/token".equals(path)) return true;
+        return false;
     }
 }

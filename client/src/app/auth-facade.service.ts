@@ -1,6 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { AuthApiService, LoginRequest, SetupAdminRequest } from './auth-api.service';
 import { StatusService } from './status.service';
+import { tap } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFacadeService {
@@ -11,20 +12,23 @@ export class AuthFacadeService {
 
   login(username: string, password: string) {
     const req: LoginRequest = { username, password };
-    this.api.login(req).subscribe({
-      next: () => {
-        this.isAuthenticated.set(true);
-        this.username.set(username);
-        this.status.setUnauthorized(false);
-        this.status.setError(null);
-      },
-      error: () => {
-        this.isAuthenticated.set(false);
-        this.username.set(null);
-        this.status.setUnauthorized(true);
-        this.status.setError('Invalid credentials. Please try again.');
-      }
-    });
+    const loginObs = this.api.login(req).pipe(
+      tap({
+        next: () => {
+          this.isAuthenticated.set(true);
+          this.username.set(username);
+          this.status.setUnauthorized(false);
+          this.status.setError(null);
+        },
+        error: () => {
+          this.isAuthenticated.set(false);
+          this.username.set(null);
+          this.status.setUnauthorized(true);
+          this.status.setError('Invalid credentials. Please try again.');
+        }
+      })
+    );
+    return loginObs;
   }
 
   logout() {

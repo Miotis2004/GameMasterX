@@ -32,7 +32,7 @@ export class PollsComponent implements OnInit {
 
   loadPolls() {
     if (!this.campaignId) return;
-    this.http.get<any[]>(`http://localhost:5172/api/campaigns/${this.campaignId}/polls`, { withCredentials: true }).subscribe({
+    this.http.get<any[]>(`http://localhost:5172/api/campaigns/${this.campaignId}/polls`).subscribe({
       next: (data) => {
         this.polls = data;
       }

@@ -17,11 +17,12 @@ public class UserDto {
     private String username;
     private String email;
     private String passwordHash;
+    private boolean globalAdmin;
 
     public UserDto() {
     }
 
-    public UserDto(String id, int schemaVersion, int revision, Instant createdAt, Instant updatedAt, String username, String email, String passwordHash) {
+    public UserDto(String id, int schemaVersion, int revision, Instant createdAt, Instant updatedAt, String username, String email, String passwordHash, boolean globalAdmin) {
         this.id = id;
         this.schemaVersion = schemaVersion;
         this.revision = revision;
@@ -30,6 +31,7 @@ public class UserDto {
         this.username = username;
         this.email = email;
         this.passwordHash = passwordHash;
+        this.globalAdmin = globalAdmin;
     }
 
     public String getId() {
@@ -94,6 +96,14 @@ public class UserDto {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public boolean isGlobalAdmin() {
+        return globalAdmin;
+    }
+
+    public void setGlobalAdmin(boolean globalAdmin) {
+        this.globalAdmin = globalAdmin;
     }
 
     @Override

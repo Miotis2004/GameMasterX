@@ -17,6 +17,4 @@
     </div>
     <button type="submit" [disabled]="loading">Login</button>
   </form>
-  <div *ngIf="status.errorMessage()" role="alert" class="error-message">{{ status.errorMessage() }}</div>
-  <div *ngIf="status.unauthorized()" role="alert" class="error-message">Session expired. Please log in again.</div>
 </div>

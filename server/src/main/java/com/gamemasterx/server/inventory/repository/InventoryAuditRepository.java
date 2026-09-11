@@ -42,5 +42,5 @@ public interface InventoryAuditRepository extends MongoRepository<InventoryAudit
      * the audit service to assign the next monotonic sequence number when
      * appending a new entry.
      */
-    Optional<InventoryAudit> findByFirstByOrderByAuditSequenceDesc();
+    Optional<InventoryAudit> findFirstByOrderByAuditSequenceDesc();
 }
