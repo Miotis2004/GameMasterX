@@ -9,6 +9,20 @@
 .messages li {
   margin-bottom: 0.5rem;
 }
-.filters button {
-  margin-right: 0.5rem;
+.connection-status {
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+.status.connected {
+  color: green;
+}
+.status.reconnecting {
+  color: orange;
+}
+.status.disconnected {
+  color: red;
+}
+.system {
+  color: #666;
+  font-style: italic;
 }

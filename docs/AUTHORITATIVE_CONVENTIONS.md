@@ -11,7 +11,8 @@ Range: 5150-5999. No default ports used.
 ## Backend API Conventions
 Base URL: `http://localhost:5172/api`
 Authentication: Session cookie, `withCredentials: true`.
-CORS allows `http://localhost:5322` with credentials.
+CORS is configured via `CorsConfig` using properties `cors.allowed-origins`, `cors.allowed-methods`, `cors.allowed-headers`, and `cors.allow-credentials`. The default configuration uses empty origins and `allow-credentials=false`.
+See `docs/AUTHORITATIVE_API_CATALOG.md` for full endpoint catalog discovered by inspection.
 
 ### Error Format
 Server returns `ErrorResponse`:
@@ -37,18 +38,18 @@ Contracts in `contracts/`:
 - Example: `AdventureResult`, `AdventureCreation`
 
 ## Angular Frontend Patterns
-- Angular 22.1.4, standalone components only
+- Angular 22.1.0, standalone components only
 - Signals for state facades (`signal`, `computed`)
 - RxJS for HTTP and events
-- Lazy routing via `loadComponent`
+- Lazy routing via `loadComponent` for all feature components
 - `StatusService` central UI state
-- `HttpErrorInterceptor` maps errors to `StatusService`
+- `HttpErrorInterceptor` maps errors to `StatusService` and is registered in `app.config.ts`
 - Shared components in `src/app/shared/components/`
 - Error, loading, empty-state components scaffolded
 
 ## Routing Conventions
 - Shell route with `AuthGuard`
-- Lazy-loaded feature components
+- All feature components lazy-loaded via `loadComponent`
 - Redirects to `dashboard` by default, `login` for unauthenticated
 
 ## API Client Conventions

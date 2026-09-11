@@ -1,18 +1,28 @@
-<app-status-bar></app-status-bar>
-<div class="shell">
-  <header>
+<div class="shell" role="application">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header role="banner">
     <h1>GameMasterX</h1>
-    <nav>
-      <a routerLink="/dashboard">Dashboard</a>
-      <a routerLink="/campaigns">Campaigns</a>
-      <a routerLink="/adventures">Adventures</a>
-      <a routerLink="/encounters/create">Encounters</a>
-      <a routerLink="/join">Join</a>
-      <a routerLink="/create">Create</a>
+    <div class="header-actions">
+      <app-campaign-switcher></app-campaign-switcher>
       <button (click)="logout()">Logout</button>
-    </nav>
+    </div>
   </header>
-  <main>
-    <router-outlet></router-outlet>
-  </main>
+  <div class="layout-container">
+    <nav role="navigation" aria-label="Main navigation">
+      <h2>Navigation</h2>
+      <ul>
+        <li><a routerLink="/dashboard">Dashboard</a></li>
+        <li><a routerLink="/campaigns">Campaigns</a></li>
+        <li><a routerLink="/adventures">Adventures</a></li>
+        <li><a routerLink="/encounters/create">Encounters</a></li>
+        <li><a routerLink="/join">Join</a></li>
+        <li><a routerLink="/create">Create</a></li>
+        <li><a routerLink="/profile">Profile</a></li>
+        <li><a routerLink="/password-change">Change Password</a></li>
+      </ul>
+    </nav>
+    <main role="main" id="main-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
 </div>

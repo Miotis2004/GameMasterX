@@ -1,15 +1,22 @@
 <div class="login-container">
   <h2>Login</h2>
-  <form (ngSubmit)="submit()">
-    <label>
-      Username
-      <input [(ngModel)]="username" name="username" required />
-    </label>
-    <label>
-      Password
-      <input [(ngModel)]="password" name="password" type="password" required />
-    </label>
-    <button type="submit" [disabled]="loading()">Login</button>
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div>
+      <label for="login-username">Username</label>
+      <input id="login-username" formControlName="username" aria-describedby="username-error" [attr.aria-invalid]="form.get('username')?.invalid && form.get('username')?.touched" />
+      <div id="username-error" role="alert" *ngIf="form.get('username')?.invalid && form.get('username')?.touched" class="error-message">
+        Username is required.
+      </div>
+    </div>
+    <div>
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" formControlName="password" aria-describedby="password-error" [attr.aria-invalid]="form.get('password')?.invalid && form.get('password')?.touched" />
+      <div id="password-error" role="alert" *ngIf="form.get('password')?.invalid && form.get('password')?.touched" class="error-message">
+        Password is required and must be at least 8 characters.
+      </div>
+    </div>
+    <button type="submit" [disabled]="loading">Login</button>
   </form>
-  <div *ngIf="error()" class="error">{{ error() }}</div>
+  <div *ngIf="status.errorMessage()" role="alert" class="error-message">{{ status.errorMessage() }}</div>
+  <div *ngIf="status.unauthorized()" role="alert" class="error-message">Session expired. Please log in again.</div>
 </div>

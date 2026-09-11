@@ -52,8 +52,8 @@
 - Event streams use RxJS for progress (`observe: 'events'`, `reportProgress: true`).
 
 #### Lazy Feature Routing
-- Feature routes use `loadComponent` for code splitting.
-- Example: `adventures`, `campaign-narrative`, `tactical-map`.
+- All feature routes use `loadComponent` for code splitting.
+- Example: `adventures`, `characters`, `campaign-narrative`, `tactical-map`.
 - Shell route guards with `AuthGuard`.
 
 #### Shared Component Conventions
@@ -76,9 +76,9 @@
 src/app/
   shared/
     components/
-      error-message.component.ts/css
-      loading.component.ts/css
-      empty-state.component.ts/css
+      error-message.component.ts/html/css
+      loading.component.ts/html/css
+      empty-state.component.ts/html/css
   auth.service.ts
   status.service.ts
   http-error.interceptor.ts

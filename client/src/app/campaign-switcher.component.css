@@ -1,0 +1,16 @@
+.campaign-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+.campaign-switcher label {
+  font-weight: 600;
+}
+.campaign-switcher select {
+  padding: 0.25rem 0.5rem;
+}
+.campaign-switcher .error {
+  color: red;
+  font-size: 0.875rem;
+}

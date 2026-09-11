@@ -85,6 +85,21 @@ export class CampaignService {
     return this.http.post<CampaignResult>(`${this.apiBase}/campaigns`, creation);
   }
 
+  /** Archives a campaign, moving it to ARCHIVED status. Requires GAME_MASTER+ role. */
+  archiveCampaign(id: string): Observable<CampaignResult> {
+    return this.http.post<CampaignResult>(`${this.apiBase}/campaigns/${id}/archive`, {});
+  }
+
+  /** Updates a campaign, requires GAME_MASTER+ role. */
+  updateCampaign(id: string, patch: Partial<CampaignCreation>): Observable<CampaignResult> {
+    return this.http.put<CampaignResult>(`${this.apiBase}/campaigns/${id}`, patch);
+  }
+
+  /** Fetches the campaign dashboard for a campaign, requires OBSERVER+ role. */
+  getCampaignDashboard(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiBase}/campaigns/${id}/dashboard`);
+  }
+
   /**
    * The reactive form model for creating a campaign. Field validators mirror
    * the server-side Bean Validation constraints on

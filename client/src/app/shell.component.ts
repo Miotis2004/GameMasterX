@@ -1,18 +1,18 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, Router } from '@angular/router';
-import { AuthService } from './auth.service';
-import { StatusBarComponent } from './status-bar.component';
+import { AuthFacadeService } from './auth-facade.service';
+import { CampaignSwitcherComponent } from './campaign-switcher.component';
 
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, StatusBarComponent],
+  imports: [CommonModule, RouterOutlet, RouterLink, CampaignSwitcherComponent],
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.css'
 })
 export class ShellComponent {
-  constructor(public auth: AuthService, private router: Router) {}
+  constructor(public auth: AuthFacadeService, private router: Router) {}
 
   logout() {
     this.auth.logout();

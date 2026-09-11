@@ -35,10 +35,11 @@
 
   <ul *ngIf="!loading() && !error() && campaigns().length > 0" class="campaign-list">
     <li *ngFor="let campaign of campaigns()" class="campaign-card">
-      <a class="campaign-link" [routerLink]="['/dashboard']">
+      <a class="campaign-link" [routerLink]="['/campaigns', campaign.id, 'dashboard']">
         <h3>{{ campaign.name }}</h3>
         <p class="muted">
           <span class="badge">{{ campaign.status }}</span>
+          <span class="role" *ngIf="campaign.role">Role: {{ campaign.role }}</span>
           <span>{{ campaign.maxPlayers }} player{{ campaign.maxPlayers === 1 ? '' : 's' }}</span>
           <span *ngIf="campaign.gameSystem">· {{ campaign.gameSystem }}</span>
         </p>
@@ -46,6 +47,7 @@
       <a class="campaign-link members-link" [routerLink]="['/campaigns', campaign.id, 'members']">
         Manage members
       </a>
+      <button class="btn-archive" *ngIf="campaign.role === 'OWNER' || campaign.role === 'GAME_MASTER'" (click)="$event.preventDefault(); archive(campaign.id)">Archive</button>
     </li>
   </ul>
 </section>

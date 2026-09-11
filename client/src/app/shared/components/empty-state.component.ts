@@ -5,14 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-empty-state',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="empty-state" *ngIf="visible()">
-      <div class="empty-icon">📭</div>
-      <h3>{{ title() }}</h3>
-      <p>{{ description() }}</p>
-      <ng-content></ng-content>
-    </div>
-  `,
+  templateUrl: './empty-state.component.html',
   styleUrl: './empty-state.component.css'
 })
 export class EmptyStateComponent {

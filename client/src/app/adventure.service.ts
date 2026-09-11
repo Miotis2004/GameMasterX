@@ -86,6 +86,16 @@ export class AdventureService {
       reportProgress: true,
     });
   }
+
+  /** Backs up an adventure to the server. */
+  backupAdventure(id: string): Observable<void> {
+    return this.http.post<void>(`${this.apiBase}/adventures/${encodeURIComponent(id)}/backup`, {});
+  }
+
+  /** Exports an adventure as a file download. */
+  exportAdventure(id: string): Observable<Blob> {
+    return this.http.get<Blob>(`${this.apiBase}/adventures/${encodeURIComponent(id)}/export`, { responseType: 'blob' as any });
+  }
 }
 
 /**

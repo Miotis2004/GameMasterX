@@ -1,3 +1,22 @@
 .shell { display: flex; flex-direction: column; height: 100vh; }
-header { display: flex; justify-content: space-between; padding: 1rem; background: #eee; }
-main { flex: 1; padding: 1rem; }
+header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #f8f9fa; color: #1a1a1a; }
+header h1 { margin: 0; font-size: 1.5rem; }
+.header-actions { display: flex; gap: 1rem; align-items: center; }
+.layout-container { display: flex; flex: 1; overflow: hidden; }
+.layout-container nav { width: 240px; background: #ffffff; padding: 1rem; overflow-y: auto; border-right: 1px solid #ddd; }
+.layout-container nav ul { list-style: none; margin: 0; padding: 0; }
+.layout-container nav li { margin-bottom: 0.5rem; }
+.layout-container nav a { text-decoration: underline; color: #005fcc; font-weight: 500; }
+.layout-container nav a:hover, .layout-container nav a:focus { text-decoration: underline; outline: 3px solid #005fcc; outline-offset: 2px; }
+.layout-container main { flex: 1; padding: 1rem; overflow-y: auto; }
+@media (max-width: 1024px) {
+  .layout-container nav { width: 200px; }
+}
+@media (max-width: 768px) {
+  .layout-container { flex-direction: column; }
+  .layout-container nav { width: 100%; border-right: none; border-bottom: 1px solid #ddd; }
+}
+@media (max-width: 480px) {
+  header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .header-actions { width: 100%; justify-content: flex-end; }
+}

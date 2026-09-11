@@ -1,0 +1,75 @@
+<div class="diagnostics-container">
+  <h1>Diagnostics</h1>
+
+  <div *ngIf="loading()" class="loading">Loading diagnostics...</div>
+  <div *ngIf="error()" class="error">{{ error() }}</div>
+
+  <div *ngIf="!loading() && !error()" class="grid">
+    <div class="card">
+      <h2>Liveness</h2>
+      <div [ngClass]="statusClass(liveness()?.status)">
+        {{ liveness()?.status || 'UNKNOWN' }}
+      </div>
+      <p>{{ liveness()?.message }}</p>
+      <small>{{ liveness()?.timestamp }}</small>
+    </div>
+
+    <div class="card">
+      <h2>Readiness</h2>
+      <div [ngClass]="statusClass(readiness()?.status)">
+        {{ readiness()?.status || 'UNKNOWN' }}
+      </div>
+      <p>{{ readiness()?.message }}</p>
+      <small>{{ readiness()?.timestamp }}</small>
+    </div>
+
+    <div class="card">
+      <h2>Application Health</h2>
+      <div [ngClass]="statusClass(application()?.status)">
+        {{ application()?.status || 'UNKNOWN' }}
+      </div>
+      <p>{{ application()?.message }}</p>
+      <small>{{ application()?.timestamp }}</small>
+    </div>
+
+    <div class="card">
+      <h2>MongoDB Connectivity</h2>
+      <div [ngClass]="statusClass(mongodb()?.status)">
+        {{ mongodb()?.status || 'UNKNOWN' }}
+      </div>
+      <p>{{ mongodb()?.message }}</p>
+      <small>{{ mongodb()?.timestamp }}</small>
+    </div>
+
+    <div class="card">
+      <h2>Transaction Capability</h2>
+      <div [ngClass]="transactionCapable ? 'up' : 'down'">
+        {{ transactionCapable ? 'SUPPORTED' : 'UNSUPPORTED' }}
+      </div>
+      <p>Replica set member: {{ replicaSetMemberInfo }}</p>
+      <small>Does not require replica set for display</small>
+    </div>
+
+    <div class="card">
+      <h2>Real-time Status</h2>
+      <div [ngClass]="statusClass(realTimeStatus)">
+        {{ realTimeStatus || 'UNKNOWN' }}
+      </div>
+      <p>WebSocket / event streaming</p>
+    </div>
+
+    <div class="card">
+      <h2>Asset Status</h2>
+      <div class="up">{{ assetStatus }}</div>
+      <p>Map assets and uploads</p>
+    </div>
+
+    <div class="card">
+      <h2>AI Health</h2>
+      <div [ngClass]="statusClass(aiHealth)">
+        {{ aiHealth || 'UNKNOWN' }}
+      </div>
+      <p>AI provider health</p>
+    </div>
+  </div>
+</div>

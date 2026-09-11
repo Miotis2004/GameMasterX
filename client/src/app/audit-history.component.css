@@ -1,0 +1,11 @@
+.page-header { margin-bottom: 1rem; }
+.crumb a { text-decoration: none; }
+h1 { margin: 0.5rem 0; }
+.audit-list { list-style: none; padding: 0; }
+.audit-record { border: 1px solid #ddd; margin-bottom: 1rem; padding: 0.75rem; background: #fff; }
+.audit-header { display: flex; gap: 1rem; flex-wrap: wrap; font-weight: 600; margin-bottom: 0.5rem; }
+.audit-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; font-size: 0.85rem; }
+.audit-body strong { display: block; margin-bottom: 0.25rem; }
+.audit-body ul { margin: 0; padding-left: 1rem; }
+.immutability-note { font-size: 0.75rem; color: #666; margin-top: 0.5rem; font-style: italic; }
+.note { color: #555; }

@@ -1,0 +1,9 @@
+.profile { max-width: 480px; margin: 2rem auto; }
+.form-field { margin-bottom: 1rem; }
+label { display: block; margin-bottom: 0.25rem; font-weight: 600; }
+input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; }
+input[aria-invalid="true"] { border-color: #d00; }
+.error { color: #d00; font-weight: 600; margin-bottom: 1rem; }
+.success { color: #080; font-weight: 600; margin-bottom: 1rem; }
+button { padding: 0.5rem 1rem; }
+button:disabled { opacity: 0.5; }

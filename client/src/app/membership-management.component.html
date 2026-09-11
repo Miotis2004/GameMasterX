@@ -12,25 +12,25 @@
     <a class="btn" routerLink="/campaigns">Back to campaigns</a>
   </header>
 
-  <div *ngIf="loading()" class="state">Loading members&hellip;</div>
+  <div *ngIf="facade.loading()" class="state">Loading members&hellip;</div>
 
-  <div *ngIf="error()" class="state error">
-    <span>{{ error() }}</span>
+  <div *ngIf="facade.error()" class="state error">
+    <span>{{ facade.error() }}</span>
     <button type="button" class="btn" (click)="load()">Try again</button>
   </div>
 
-  <p *ngIf="actorId() === null" class="state muted">
+  <p *ngIf="facade.actorId() === null" class="state muted">
     The current user identity is unavailable, so membership actions are disabled.
   </p>
 
-  <ul *ngIf="!loading() && !error() && members().length === 0" class="state empty">
+  <ul *ngIf="!facade.loading() && !facade.error() && facade.members().length === 0" class="state empty">
     <li>No members have joined this campaign yet.</li>
   </ul>
 
   <section
-    *ngIf="!loading() && !error() && members().length > 0"
+    *ngIf="!facade.loading() && !facade.error() && facade.members().length > 0"
     class="membership-table"
-    [class.disabled]="actorId() === null"
+    [class.disabled]="facade.actorId() === null"
   >
     <table>
       <thead>
@@ -42,7 +42,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let member of members()" [class.revoked]="member.status === 'REVOKED'">
+        <tr *ngFor="let member of facade.members()" [class.revoked]="member.status === 'REVOKED'">
           <td class="member-id">{{ member.userId }}</td>
           <td><span class="badge">{{ member.role }}</span></td>
           <td>

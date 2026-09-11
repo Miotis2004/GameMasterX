@@ -1,0 +1,72 @@
+<div class="page-header">
+  <nav class="crumb">
+    <a routerLink="/dashboard">Dashboard</a> / Turn History
+  </nav>
+  <h1>Turn History</h1>
+</div>
+
+<app-loading [visible]="loading()" label="Loading turn history..."></app-loading>
+
+<app-error-message *ngIf="error()" [message]="error() ?? ''"></app-error-message>
+
+<div *ngIf="!loading() && !error()">
+  <div *ngIf="turns().length === 0">
+    <app-empty-state label="No turn history" description="No turns have been recorded for this encounter yet."></app-empty-state>
+  </div>
+
+  <div *ngIf="turns().length > 0" class="turn-history">
+    <ul class="turn-list">
+      <li *ngFor="let turn of turns()" class="turn-record">
+        <div class="turn-header">
+          <span class="round">Round {{ turn.round }}</span>
+          <span class="turn-index">Turn {{ turn.turnIndex }}</span>
+          <span class="actor">Actor: {{ participantName(turn.actingParticipantId) }}</span>
+          <span class="revision">Revision {{ turn.revisionBefore }} → {{ turn.revisionAfter }}</span>
+        </div>
+        <ul class="action-list">
+          <li *ngFor="let action of turn.actions" class="action-record">
+            <div class="action-summary">
+              <strong>{{ action.type }}</strong>
+              <span *ngIf="action.targetName">→ {{ action.targetName }}</span>
+              <span class="outcome">Outcome: {{ action.outcome }}</span>
+              <span class="total">Total: {{ action.total }}</span>
+            </div>
+            <div class="action-details">
+              <div class="inputs">
+                <strong>Inputs</strong>
+                <ul>
+                  <li>Actor: {{ action.actorId || '—' }}</li>
+                  <li>Ability/Skill: {{ action.skillOrAbility || '—' }}</li>
+                  <li>Target: {{ action.targetName || '—' }}</li>
+                </ul>
+              </div>
+              <div class="modifiers">
+                <strong>Modifiers</strong>
+                <ul>
+                  <li *ngFor="let m of action.modifiers">{{ m.name }} ({{ m.value > 0 ? '+' : '' }}{{ m.value }})</li>
+                  <li *ngIf="!action.modifiers?.length">none</li>
+                </ul>
+              </div>
+              <div class="dice">
+                <strong>Random values</strong>
+                <ul>
+                  <li *ngFor="let d of action.diceResults">
+                    {{ d.label || d.diceExpression }} rolls: {{ d.rolls.join(', ') }} total {{ d.total }}
+                  </li>
+                  <li *ngIf="!action.diceResults?.length">—</li>
+                </ul>
+              </div>
+              <div class="outcome-details">
+                <strong>Outcome</strong>
+                <p>Modifier total: {{ action.modifierTotal }} · Final total: {{ action.total }} · Outcome: {{ action.outcome }}</p>
+              </div>
+            </div>
+          </li>
+          <li *ngIf="turn.actions.length === 0" class="action-empty">
+            No actions recorded. Revision {{ turn.revisionBefore }} → {{ turn.revisionAfter }}.
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</div>

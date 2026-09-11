@@ -1,0 +1,12 @@
+.polls {
+  padding: 1rem;
+  border: 1px solid #ddd;
+}
+.poll {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border: 1px solid #eee;
+}
+.create-poll input {
+  margin: 0.25rem;
+}

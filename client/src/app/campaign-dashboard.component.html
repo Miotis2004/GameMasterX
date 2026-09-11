@@ -1,0 +1,49 @@
+<section class="campaign-dashboard">
+  <h2>Campaign Dashboard</h2>
+
+  <div *ngIf="loading()" class="state">Loading dashboard&hellip;</div>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="load()">Try again</button>
+  </div>
+
+  <ng-container *ngIf="!loading() && !error() && dashboard()">
+    <header>
+      <h3>{{ dashboard().campaign.name }}</h3>
+      <p class="muted">
+        Status: {{ dashboard().campaign.status }} · Role: {{ dashboard().actorRole }}
+      </p>
+    </header>
+
+    <section>
+      <h4>Members</h4>
+      <ul>
+        <li *ngFor="let m of dashboard().members">
+          {{ m.userId }} — {{ m.role }} ({{ m.status }})
+        </li>
+      </ul>
+      <div *ngIf="dashboard().members.length === 0" class="empty">No members</div>
+    </section>
+
+    <section>
+      <h4>Characters</h4>
+      <ul>
+        <li *ngFor="let c of dashboard().characters">
+          {{ c.name }}
+        </li>
+      </ul>
+      <div *ngIf="dashboard().characters.length === 0" class="empty">No characters</div>
+    </section>
+
+    <section>
+      <h4>Selected Adventure</h4>
+      <div *ngIf="dashboard().selectedAdventure; else noAdventure">
+        {{ dashboard().selectedAdventure.title || dashboard().selectedAdventure.id }}
+      </div>
+      <ng-template #noAdventure>
+        <div class="empty">No adventure selected</div>
+      </ng-template>
+    </section>
+  </ng-container>
+</section>

@@ -1,7 +1,8 @@
 import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
+import { NarrativeFacadeService } from './narrative-facade.service';
 
 @Component({
   selector: 'app-action-input',
@@ -12,7 +13,8 @@ import { HttpClient } from '@angular/common/http';
 })
 export class ActionInputComponent {
   private fb = new FormBuilder();
-  private http = inject(HttpClient);
+  private route = inject(ActivatedRoute);
+  private facade = inject(NarrativeFacadeService);
   readonly form = this.fb.group({
     action: ['', Validators.required]
   });
@@ -25,10 +27,20 @@ export class ActionInputComponent {
       return;
     }
     this.submitting.set(true);
-    const action = this.form.value.action;
-    this.http.post('http://localhost:5172/api/actions', { action }).subscribe({
+    const actionValue = this.form.value.action;
+    if (!actionValue) {
+      this.submitting.set(false);
+      return;
+    }
+    const campaignId = this.route.snapshot.paramMap.get('campaignId');
+    if (!campaignId) {
+      this.lastResult.set('No campaign selected');
+      this.submitting.set(false);
+      return;
+    }
+    this.facade.submitAction(actionValue).subscribe({
       next: () => {
-        this.lastResult.set(`Submitted: ${action}`);
+        this.lastResult.set(`Action submitted: ${actionValue}`);
         this.submitting.set(false);
         this.form.reset();
       },

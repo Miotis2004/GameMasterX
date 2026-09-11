@@ -1,4 +1,4 @@
-<div class="status-bar">
+<div class="status-bar" aria-live="polite" aria-atomic="true">
   <div *ngIf="status.loading()" class="status loading">Loading...</div>
   <div *ngIf="status.unauthorized()" class="status unauthorized">Access denied. Please log in.</div>
   <div *ngIf="status.disconnected()" class="status disconnected">Connection issue. Backend or database may be unreachable.</div>

@@ -1,0 +1,40 @@
+<div class="settings-container">
+  <h2>Campaign Settings</h2>
+
+  <div *ngIf="loading()" class="loading">Loading...</div>
+  <div *ngIf="error()" class="error" role="alert">{{ error() }}</div>
+  <div *ngIf="success()" class="success" role="status">{{ success() }}</div>
+
+  <form [formGroup]="form" (ngSubmit)="save()" *ngIf="!loading()">
+    <div class="field">
+      <label for="name">Campaign Name</label>
+      <input id="name" formControlName="name" />
+      <div class="error-msg" *ngIf="form.get('name')?.invalid && form.get('name')?.touched">
+        Name is required (max 100 characters)
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description" formControlName="description"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="gameSystem">Game System</label>
+      <input id="gameSystem" formControlName="gameSystem" />
+    </div>
+
+    <div class="field">
+      <label for="maxPlayers">Max Players</label>
+      <input id="maxPlayers" type="number" formControlName="maxPlayers" />
+      <div class="error-msg" *ngIf="form.get('maxPlayers')?.invalid && form.get('maxPlayers')?.touched">
+        Must be between 1 and 100
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" [disabled]="form.invalid || loading()">Save</button>
+      <button type="button" (click)="cancel()">Cancel</button>
+    </div>
+  </form>
+</div>

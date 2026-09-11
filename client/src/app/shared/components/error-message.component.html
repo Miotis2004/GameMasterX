@@ -1,0 +1,8 @@
+<div class="error-message" *ngIf="message()">
+  <div class="error-icon">⚠️</div>
+  <div class="error-content">
+    <strong>Error</strong>
+    <p>{{ message() }}</p>
+    <ng-content></ng-content>
+  </div>
+</div>

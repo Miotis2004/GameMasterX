@@ -5,16 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-error-message',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="error-message" *ngIf="message()">
-      <div class="error-icon">⚠️</div>
-      <div class="error-content">
-        <strong>Error</strong>
-        <p>{{ message() }}</p>
-        <ng-content></ng-content>
-      </div>
-    </div>
-  `,
+  templateUrl: './error-message.component.html',
   styleUrl: './error-message.component.css'
 })
 export class ErrorMessageComponent {

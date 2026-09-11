@@ -1,0 +1,55 @@
+<div class="page-header">
+  <nav class="crumb">
+    <a routerLink="/dashboard">Dashboard</a> / Audit History
+  </nav>
+  <h1>Audit History</h1>
+</div>
+
+<app-loading [visible]="loading()" label="Loading audit history..."></app-loading>
+
+<app-error-message *ngIf="error()" [message]="error() ?? ''"></app-error-message>
+
+<div *ngIf="!loading() && !error()">
+  <div *ngIf="audits().length === 0">
+    <app-empty-state label="No audit entries" description="No audit records have been recorded for this encounter yet."></app-empty-state>
+  </div>
+
+  <div *ngIf="audits().length > 0" class="audit-history">
+    <ul class="audit-list">
+      <li *ngFor="let a of audits()" class="audit-record">
+        <div class="audit-header">
+          <span class="seq">#{{ a.auditSequence }}</span>
+          <span class="decision">{{ a.decision }}</span>
+          <span class="revision">Revision {{ a.revisionBefore }} → {{ a.revisionAfter }}</span>
+          <span class="recorded">Recorded {{ a.recordedAt || '—' }}</span>
+        </div>
+        <div class="audit-body">
+          <div class="mutation">
+            <strong>Mutation</strong>
+            <ul>
+              <li>Subject: {{ a.subjectType || '—' }} / {{ a.subjectId || '—' }}</li>
+              <li>Before: {{ a.before || '—' }}</li>
+              <li>After: {{ a.after || '—' }}</li>
+              <li>Mutation ID: {{ a.mutationId || '—' }}</li>
+            </ul>
+          </div>
+          <div class="context">
+            <strong>Context</strong>
+            <ul>
+              <li>Turn ID: {{ a.turnId || '—' }}</li>
+              <li>Action ID: {{ a.actionId || '—' }}</li>
+              <li>Actor: {{ a.actor || '—' }}</li>
+              <li>Reason: {{ a.reason || '—' }}</li>
+              <li>Correlation: {{ a.correlationId || '—' }}</li>
+            </ul>
+          </div>
+          <div class="inputs">
+            <strong>Inputs / Modifiers / Random values / Outcome</strong>
+            <p class="note">Immutable records are append-only. See turn history for detailed action inputs, modifiers, dice rolls and outcomes.</p>
+          </div>
+        </div>
+        <div class="immutability-note">Record is read-only and cannot be altered.</div>
+      </li>
+    </ul>
+  </div>
+</div>

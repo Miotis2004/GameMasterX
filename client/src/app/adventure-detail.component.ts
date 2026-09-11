@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { AdventureService } from './adventure.service';
+import { AdventureFacadeService } from './adventure-facade.service';
 import { AdventureResult, ChapterResult } from '../../../contracts/adventure';
 
 /**
@@ -18,7 +18,7 @@ import { AdventureResult, ChapterResult } from '../../../contracts/adventure';
   styleUrl: './adventure-detail.component.css',
 })
 export class AdventureDetailComponent implements OnInit {
-  private readonly service = inject(AdventureService);
+  private readonly facade = inject(AdventureFacadeService);
   private readonly route = inject(ActivatedRoute);
 
   readonly adventure = signal<AdventureResult | null>(null);
@@ -38,7 +38,7 @@ export class AdventureDetailComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     this.adventure.set(null);
-    this.service
+    this.facade
       .getAdventure(id)
       .subscribe({
         next: (adventure) => {

@@ -1,0 +1,45 @@
+<section class="invites">
+  <header class="invites-header">
+    <div>
+      <h2>Invites & Join Codes</h2>
+      <p class="muted">Issue targeted invites or generate local join codes for this campaign.</p>
+      <p class="muted muted-small">Controls reflect your campaign role. All actions are authorized by the backend.</p>
+    </div>
+    <a class="btn" routerLink="/campaigns">Back to campaigns</a>
+  </header>
+
+  <div *ngIf="error()" class="state error">
+    <span>{{ error() }}</span>
+    <button type="button" class="btn" (click)="loadInvites()">Try again</button>
+  </div>
+
+  <section class="invite-form">
+    <h3>Issue Invite</h3>
+    <label>
+      Role
+      <select [(ngModel)]="selectedRole">
+        <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+      </select>
+    </label>
+    <label>
+      Expires after seconds (optional)
+      <input type="number" [(ngModel)]="expiresAfterSeconds" placeholder="e.g. 604800">
+    </label>
+    <div class="actions">
+      <button type="button" class="btn btn-primary" (click)="issueInvite()">Issue Invite</button>
+      <button type="button" class="btn" (click)="generateJoinCode()">Generate Join Code</button>
+    </div>
+  </section>
+
+  <section class="invite-list">
+    <h3>Active Invites</h3>
+    <div *ngIf="facade.invites().length === 0" class="state empty">No invites issued yet.</div>
+    <ul *ngIf="facade.invites().length > 0">
+      <li *ngFor="let inv of facade.invites()">
+        <div><strong>{{ inv.inviteCode }}</strong> — Role: {{ inv.role }} — Status: {{ inv.status }} — Redeem: {{ inv.redeemMode }}</div>
+        <div class="muted">Issued by {{ inv.issuedBy || 'unknown' }} · Expires {{ inv.expiresAt || 'never' }}</div>
+        <button *ngIf="inv.status === 'PENDING'" type="button" class="btn" (click)="revokeInvite(inv)">Revoke</button>
+      </li>
+    </ul>
+  </section>
+</section>

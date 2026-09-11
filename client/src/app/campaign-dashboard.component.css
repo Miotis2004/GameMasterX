@@ -1,0 +1,8 @@
+.campaign-dashboard { padding: 1rem; }
+.campaign-dashboard h2 { margin-bottom: 0.5rem; }
+.campaign-dashboard section { margin-top: 1rem; }
+.campaign-dashboard ul { list-style: none; padding: 0; }
+.campaign-dashboard li { padding: 0.25rem 0; }
+.state { padding: 1rem; margin: 1rem 0; }
+.state.error { color: #c00; }
+.empty { color: #666; font-style: italic; }

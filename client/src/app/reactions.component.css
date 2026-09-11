@@ -1,0 +1,6 @@
+.reactions button {
+  margin: 0.2rem;
+  background: none;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}

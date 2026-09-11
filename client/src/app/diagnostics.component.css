@@ -1,0 +1,49 @@
+.diagnostics-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+h1 {
+  margin-bottom: 24px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  background: #fff;
+}
+.card h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+.up {
+  color: #0a7a0a;
+  font-weight: bold;
+}
+.down {
+  color: #c00;
+  font-weight: bold;
+}
+.unknown {
+  color: #777;
+  font-weight: bold;
+}
+.loading {
+  padding: 32px;
+  text-align: center;
+  font-style: italic;
+}
+.error {
+  padding: 32px;
+  color: #c00;
+  text-align: center;
+}
+small {
+  color: #666;
+  font-size: 0.8rem;
+}

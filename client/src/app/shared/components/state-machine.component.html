@@ -1,0 +1,94 @@
+<div class="state-machine">
+  <ng-container *ngIf="isLoading">
+    <div class="state loading">
+      <div class="spinner"></div>
+      <div>
+        <strong>{{ title() || 'Loading' }}</strong>
+        <p>{{ message() || 'Please wait...' }}</p>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isEmpty">
+    <div class="state empty">
+      <div class="icon">📭</div>
+      <strong>{{ title() || 'No items' }}</strong>
+      <p>{{ message() || 'There is nothing to display yet.' }}</p>
+      <ng-content></ng-content>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isSuccess">
+    <div class="state success">
+      <div class="icon">✅</div>
+      <strong>{{ title() || 'Success' }}</strong>
+      <p>{{ message() }}</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isValidation">
+    <div class="state validation">
+      <div class="icon">⚠️</div>
+      <strong>{{ title() || 'Validation errors' }}</strong>
+      <p>{{ message() || 'Please correct the highlighted fields.' }}</p>
+      <div class="details" *ngIf="details()">{{ details() }}</div>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isDisconnected">
+    <div class="state error">
+      <div class="icon">📡</div>
+      <strong>{{ title() || 'Disconnected' }}</strong>
+      <p>{{ message() || 'Unable to connect to the server. Please check your network.' }}</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isReconnecting">
+    <div class="state reconnecting">
+      <div class="spinner"></div>
+      <strong>{{ title() || 'Reconnecting' }}</strong>
+      <p>{{ message() || 'Attempting to reconnect...' }}</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isUnauthorized">
+    <div class="state error">
+      <div class="icon">🔒</div>
+      <strong>{{ title() || 'Unauthorized' }}</strong>
+      <p>{{ message() || 'You are not authorized. Please log in again.' }}</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isForbidden">
+    <div class="state error">
+      <div class="icon">🚫</div>
+      <strong>{{ title() || 'Forbidden' }}</strong>
+      <p>{{ message() || 'Access denied. You do not have permission for this resource.' }}</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isConflict">
+    <div class="state error">
+      <div class="icon">⚔️</div>
+      <strong>{{ title() || 'Conflict' }}</strong>
+      <p>{{ message() || 'A conflict was detected. Please refresh and try again.' }}</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isDegradedAi">
+    <div class="state warning">
+      <div class="icon">🤖</div>
+      <strong>{{ title() || 'Degraded AI' }}</strong>
+      <p>{{ message() || 'AI features are operating in offline mode.' }}</p>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isFailure">
+    <div class="state error">
+      <div class="icon">❌</div>
+      <strong>{{ title() || 'Failure' }}</strong>
+      <p>{{ message() || 'An error occurred. Please try again.' }}</p>
+      <div class="details" *ngIf="details()">{{ details() }}</div>
+    </div>
+  </ng-container>
+</div>

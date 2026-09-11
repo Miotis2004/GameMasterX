@@ -3,6 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CampaignService, CampaignResult, CampaignStatus } from './campaign.service';
+import { MembershipService } from './membership.service';
+import { forkJoin } from 'rxjs';
+
+interface CampaignWithRole extends CampaignResult {
+  role?: string;
+}
 
 /**
  * The campaign browser lists the campaigns available to the authenticated
@@ -17,9 +23,10 @@ import { CampaignService, CampaignResult, CampaignStatus } from './campaign.serv
 })
 export class CampaignBrowserComponent implements OnInit {
   private readonly service = inject(CampaignService);
+  private readonly membershipService = inject(MembershipService);
   private readonly formBuilder = inject(FormBuilder);
 
-  readonly campaigns = signal<CampaignResult[]>([]);
+  readonly campaigns = signal<CampaignWithRole[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -50,8 +57,28 @@ export class CampaignBrowserComponent implements OnInit {
       .listCampaigns(status === 'ALL' ? undefined : status)
       .subscribe({
         next: (campaigns) => {
-          this.campaigns.set(campaigns);
-          this.loading.set(false);
+          const roleRequests = campaigns.map(c =>
+            this.membershipService.getCampaignDashboard(c.id)
+          );
+          if (roleRequests.length === 0) {
+            this.campaigns.set([]);
+            this.loading.set(false);
+            return;
+          }
+          forkJoin(roleRequests).subscribe({
+            next: (dashboards) => {
+              const enriched = campaigns.map((c, idx) => {
+                const dash = dashboards[idx];
+                return { ...c, role: dash?.actorRole ?? 'UNKNOWN' } as CampaignWithRole;
+              });
+              this.campaigns.set(enriched);
+              this.loading.set(false);
+            },
+            error: () => {
+              this.campaigns.set(campaigns.map(c => ({ ...c } as CampaignWithRole)));
+              this.loading.set(false);
+            }
+          });
         },
         error: (err: unknown) => {
           const message =
@@ -62,5 +89,18 @@ export class CampaignBrowserComponent implements OnInit {
           this.loading.set(false);
         },
       });
+  }
+
+  archive(id: string): void {
+    this.service.archiveCampaign(id).subscribe({
+      next: () => this.load(),
+      error: (err: unknown) => {
+        const message =
+          err && typeof err === 'object' && 'message' in err
+            ? (err as { message?: string }).message
+            : 'Unable to archive campaign.';
+        this.error.set(message ?? 'Unable to archive campaign.');
+      }
+    });
   }
 }

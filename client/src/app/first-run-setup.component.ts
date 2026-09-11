@@ -1,36 +1,44 @@
-import { Component, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from './auth.service';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { AuthFacadeService } from './auth-facade.service';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-first-run-setup',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './first-run-setup.component.html',
   styleUrl: './first-run-setup.component.css'
 })
 export class FirstRunSetupComponent {
-  username = signal('');
-  email = signal('');
-  password = signal('');
-  error = signal<string | null>(null);
-  loading = signal(false);
+  loading = false;
+  form;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(private fb: FormBuilder, private auth: AuthFacadeService, private router: Router) {
+    this.form = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(8)]]
+    });
+  }
 
   submit() {
-    this.loading.set(true);
-    this.error.set(null);
-    this.auth.setupAdmin(this.username(), this.email(), this.password()).subscribe({
+    this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      return;
+    }
+    this.loading = true;
+    const { email, password } = this.form.value;
+    // Use email as username for backend compatibility
+    this.auth.setupAdmin(email!, email!, password!).subscribe({
       next: () => {
-        this.loading.set(false);
+        this.loading = false;
+        localStorage.setItem('adminSetupDone', 'true');
         this.router.navigate(['/login']);
       },
       error: (err) => {
-        this.loading.set(false);
-        this.error.set(err.error?.error || 'Setup failed');
+        this.loading = false;
+        // Error handled by interceptor and StatusService
       }
     });
   }

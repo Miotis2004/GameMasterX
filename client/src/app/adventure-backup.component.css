@@ -1,0 +1,6 @@
+h2 { margin-bottom: 1rem; }
+ul { list-style: none; padding: 0; }
+li { margin: 0.5rem 0; }
+button { margin-left: 1rem; }
+.error { color: red; }
+.success { color: green; }

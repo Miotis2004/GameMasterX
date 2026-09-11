@@ -1,0 +1,17 @@
+<div class="settings-container">
+  <h2>AI Endpoint Settings</h2>
+
+  <div *ngIf="loading()" class="loading">Loading...</div>
+  <div *ngIf="error()" class="error" role="alert">{{ error() }}</div>
+  <div *ngIf="success()" class="success" role="status">{{ success() }}</div>
+
+  <div *ngIf="aiInfo && !loading()" class="info">
+    <p><strong>Provider:</strong> {{ aiInfo?.provider || 'Unknown' }}</p>
+    <p><strong>Model:</strong> {{ aiInfo?.model || 'Unknown' }}</p>
+    <p><strong>Status:</strong> {{ aiInfo?.status || 'UNKNOWN' }}</p>
+    <p><strong>Reachable:</strong> {{ aiInfo?.reachable ? 'Yes' : 'No' }}</p>
+    <p *ngIf="aiInfo?.contextSize"><strong>Context Size:</strong> {{ aiInfo?.contextSize }}</p>
+    <p *ngIf="aiInfo?.maxTokens"><strong>Max Tokens:</strong> {{ aiInfo?.maxTokens }}</p>
+    <p class="note">Endpoint URL and credentials are not displayed for security.</p>
+  </div>
+</div>

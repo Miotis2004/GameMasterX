@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AdventureService } from './adventure.service';
+import { AdventureFacadeService } from './adventure-facade.service';
 import { AdventureResult, AdventureStatus } from '../../../contracts/adventure';
 
 /**
@@ -18,7 +18,7 @@ import { AdventureResult, AdventureStatus } from '../../../contracts/adventure';
   styleUrl: './adventure-library.component.css',
 })
 export class AdventureLibraryComponent implements OnInit {
-  private readonly service = inject(AdventureService);
+  private readonly facade = inject(AdventureFacadeService);
   private readonly formBuilder = inject(FormBuilder);
 
   readonly adventures = signal<AdventureResult[]>([]);
@@ -46,8 +46,8 @@ export class AdventureLibraryComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
     const status = (this.filterForm.get('status')?.value ?? 'ALL') as 'ALL' | AdventureStatus;
-    this.service
-      .listAdventuresByStatus(status === 'ALL' ? null : status)
+    this.facade
+      .listAdventures(status === 'ALL' ? null : status)
       .subscribe({
         next: (adventures) => {
           this.adventures.set(adventures);

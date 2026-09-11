@@ -1,13 +1,32 @@
 <section class="campaign-chat">
   <h2>Campaign Chat</h2>
-  <div class="filters">
-    <button (click)="setFilter('ALL')">All</button>
-    <button (click)="setFilter('GAME_MASTER')">GM</button>
-    <button (click)="setFilter('PLAYER')">Player</button>
+  <div class="connection-status">
+    <span *ngIf="connectionStatus === 'connected'" class="status connected">Connected</span>
+    <span *ngIf="connectionStatus === 'reconnecting'" class="status reconnecting">Reconnecting...</span>
+    <span *ngIf="connectionStatus === 'disconnected'" class="status disconnected">Disconnected</span>
   </div>
+  <h3>Chat</h3>
   <ul class="messages">
-    <li *ngFor="let msg of filteredMessages()">
+    <li *ngFor="let msg of chatMessages">
       <strong>{{ msg.author }} ({{ msg.role }}):</strong> {{ msg.text }}
+    </li>
+  </ul>
+  <h3>Whispers</h3>
+  <ul class="messages">
+    <li *ngFor="let msg of whispers">
+      <em>Whisper from {{ msg.author }}:</em> {{ msg.text }}
+    </li>
+  </ul>
+  <h3>GM Notes</h3>
+  <ul class="messages">
+    <li *ngFor="let msg of gmNotes">
+      <strong>GM:</strong> {{ msg.text }}
+    </li>
+  </ul>
+  <h3>System Events</h3>
+  <ul class="messages">
+    <li *ngFor="let msg of systemEvents">
+      <span class="system">{{ msg.text }}</span>
     </li>
   </ul>
 </section>

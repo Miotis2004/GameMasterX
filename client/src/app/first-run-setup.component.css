@@ -1,5 +1,7 @@
 .setup-container { max-width: 400px; margin: 2rem auto; padding: 1rem; }
-label { display: block; margin-bottom: 0.5rem; }
-input { width: 100%; padding: 0.5rem; margin-bottom: 1rem; }
+label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+input { width: 100%; padding: 0.5rem; margin-bottom: 0.25rem; border: 1px solid #ccc; }
+input[aria-invalid="true"] { border-color: #d32f2f; }
 button { padding: 0.5rem 1rem; }
-.error { color: red; margin-top: 1rem; }
+.error-message { color: #d32f2f; font-size: 0.875rem; margin-top: 0.25rem; }
+.error-message::before { content: 'Error: '; font-weight: bold; }

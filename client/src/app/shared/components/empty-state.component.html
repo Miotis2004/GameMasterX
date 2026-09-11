@@ -1,0 +1,6 @@
+<div class="empty-state" *ngIf="visible()">
+  <div class="empty-icon">📭</div>
+  <h3>{{ title() }}</h3>
+  <p>{{ description() }}</p>
+  <ng-content></ng-content>
+</div>

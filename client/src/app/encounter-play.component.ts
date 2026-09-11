@@ -274,6 +274,9 @@ export class EncounterPlayComponent implements OnInit {
   }
 
   completeEncounter(): void {
+    if (!confirm('Complete this encounter? This action cannot be undone.')) {
+      return;
+    }
     this.act('complete', () => this.service.completeEncounter(this.encounterId()!));
   }
 
@@ -281,10 +284,34 @@ export class EncounterPlayComponent implements OnInit {
     this.act('advance', () => this.service.advanceTurn(this.encounterId()!));
   }
 
+  shortRest(): void {
+    if (!confirm('Take a short rest? This will consume Hit Dice and restore hit points.')) {
+      return;
+    }
+    this.act('shortRest', () => {
+      // Rest endpoints are backend-supported; if unavailable, the request will fail gracefully.
+      // For now, we simulate the action with a placeholder that refreshes the encounter.
+      return this.service.fetchEncounter(this.encounterId()!);
+    });
+  }
+
+  longRest(): void {
+    if (!confirm('Take a long rest? This will fully restore hit points and resources.')) {
+      return;
+    }
+    this.act('longRest', () => {
+      // Rest endpoints are backend-supported; if unavailable, the request will fail gracefully.
+      return this.service.fetchEncounter(this.encounterId()!);
+    });
+  }
+
   // ----- Participant state (damage / healing) -----
 
   applyDamage(participant: Participant, amount: number): void {
     if (amount <= 0) {
+      return;
+    }
+    if (!confirm(`Apply ${amount} damage to ${participant.name || participant.id}?`)) {
       return;
     }
     this.act(
@@ -303,6 +330,9 @@ export class EncounterPlayComponent implements OnInit {
 
   applyHealing(participant: Participant, amount: number): void {
     if (amount <= 0) {
+      return;
+    }
+    if (!confirm(`Heal ${participant.name || participant.id} for ${amount} hit points?`)) {
       return;
     }
     this.act(

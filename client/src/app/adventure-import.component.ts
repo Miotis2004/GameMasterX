@@ -2,7 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { AdventureService, AdventureImportError, toImportError } from './adventure.service';
+import { AdventureFacadeService } from './adventure-facade.service';
+import { AdventureImportError, toImportError } from './adventure.service';
 
 /**
  * The import screen uploads a local adventure package (a ZIP archive containing
@@ -19,7 +20,7 @@ import { AdventureService, AdventureImportError, toImportError } from './adventu
   styleUrl: './adventure-import.component.css',
 })
 export class AdventureImportComponent {
-  private readonly service = inject(AdventureService);
+  private readonly facade = inject(AdventureFacadeService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
 
@@ -67,14 +68,22 @@ export class AdventureImportComponent {
 
     const overwrite = this.importForm.get('overwrite')?.value ?? false;
 
-    this.service
+    this.facade
       .importAdventureProgress(this.selectedFile, overwrite)
       .subscribe({
         next: (event) => {
           // Upload progress events (event.type === 3).
           if (event.type === 3) {
-            const total = event.total ?? 0;
-            this.progress.set(total ? Math.round((event.loaded * 100) / total) : 100);
+            const total = (event as any).total ?? 0;
+            this.progress.set(total ? Math.round(((event as any).loaded * 100) / total) : 100);
+          }
+          // Successful response event (event.type === 4).
+          if (event.type === 4) {
+            const response = event as any;
+            const body = response.body;
+            if (body && typeof body === 'object' && 'id' in body) {
+              this.successId.set(body.id);
+            }
           }
         },
         complete: () => {

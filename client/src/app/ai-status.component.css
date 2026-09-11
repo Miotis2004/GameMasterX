@@ -4,5 +4,5 @@
 }
 .enabled { color: green; }
 .disabled { color: red; }
-.available { color: green; }
-.unavailable { color: red; }
+.unavailable { color: orange; }
+.degraded { color: orange; }

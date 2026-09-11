@@ -1,36 +1,51 @@
-import { Component, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from './auth.service';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { AuthFacadeService } from './auth-facade.service';
 import { Router } from '@angular/router';
+import { StatusService } from './status.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
-export class LoginComponent {
-  username = signal('');
-  password = signal('');
-  error = signal<string | null>(null);
-  loading = signal(false);
+export class LoginComponent implements OnInit {
+  loading = false;
+  form;
 
-  constructor(private auth: AuthService, private router: Router) {}
+  constructor(
+    private fb: FormBuilder,
+    private auth: AuthFacadeService,
+    private router: Router,
+    public status: StatusService
+  ) {
+    this.form = this.fb.group({
+      username: ['', [Validators.required]],
+      password: ['', [Validators.required, Validators.minLength(8)]]
+    });
+  }
+
+  ngOnInit() {
+    if (this.auth.getIsAuthenticated()) {
+      this.router.navigate(['/dashboard']);
+    }
+  }
 
   submit() {
-    this.loading.set(true);
-    this.error.set(null);
-    this.auth.login(this.username(), this.password());
-    // Wait for signal change via subscription? We'll poll quickly.
-    // For simplicity, navigate after short delay assuming success.
+    this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      return;
+    }
+    this.loading = true;
+    const { username, password } = this.form.value;
+    this.auth.login(username!, password!);
     setTimeout(() => {
-      this.loading.set(false);
-      if (this.auth.isAuthenticated()) {
+      this.loading = false;
+      if (this.auth.getIsAuthenticated()) {
         this.router.navigate(['/dashboard']);
-      } else {
-        this.error.set('Invalid credentials');
       }
     }, 300);
   }

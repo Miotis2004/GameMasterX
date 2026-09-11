@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AiStatusService } from './ai-status.service';
 
 @Component({
   selector: 'app-ai-status',
@@ -9,14 +10,21 @@ import { CommonModule } from '@angular/common';
   styleUrl: './ai-status.component.css'
 })
 export class AiStatusComponent {
-  readonly aiEnabled = signal(true);
-  readonly aiAvailable = signal(true);
+  private statusService = inject(AiStatusService);
 
-  toggleEnabled() {
-    this.aiEnabled.update(v => !v);
+  get state() {
+    return this.statusService.state;
   }
 
-  setAvailability(available: boolean) {
-    this.aiAvailable.set(available);
+  toggleEnabled() {
+    this.statusService.setEnabled(!this.statusService.enabled());
+  }
+
+  toggleAvailability() {
+    this.statusService.setAvailable(!this.statusService.available());
+  }
+
+  clearDegraded() {
+    this.statusService.clearDegraded();
   }
 }

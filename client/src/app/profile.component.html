@@ -1,0 +1,26 @@
+<div class="profile" role="main" aria-labelledby="profile-heading">
+  <h2 id="profile-heading">Profile</h2>
+
+  <div role="status" aria-live="polite" *ngIf="successMessage" class="success">
+    <span aria-label="Success">{{ successMessage }}</span>
+  </div>
+  <div role="alert" aria-live="assertive" *ngIf="errorMessage" class="error">
+    <span aria-label="Error">{{ errorMessage }}</span>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="form-field">
+      <label for="username">Username</label>
+      <input id="username" type="text" formControlName="username" aria-required="true" [attr.aria-invalid]="form.get('username')?.invalid && form.get('username')?.touched" aria-describedby="username-error" />
+      <div id="username-error" role="alert" *ngIf="getError('username')">{{ getError('username') }}</div>
+    </div>
+
+    <div class="form-field">
+      <label for="email">Email</label>
+      <input id="email" type="email" formControlName="email" aria-required="true" [attr.aria-invalid]="form.get('email')?.invalid && form.get('email')?.touched" aria-describedby="email-error" />
+      <div id="email-error" role="alert" *ngIf="getError('email')">{{ getError('email') }}</div>
+    </div>
+
+    <button type="submit" [disabled]="form.invalid">Save</button>
+  </form>
+</div>

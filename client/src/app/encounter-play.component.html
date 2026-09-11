@@ -1,3 +1,4 @@
+<div *ngIf="loading()" class="loading-state">Loading encounter…</div>
 <nav class="crumb">
   <a routerLink="/dashboard">Dashboard</a> /
   <a [routerLink]="['/campaigns']">Campaigns</a> /
@@ -45,6 +46,12 @@
       </button>
       <button type="button" class="danger" (click)="completeEncounter()" [disabled]="applying()">
         {{ applying() === 'complete' ? 'Completing…' : 'Complete' }}
+      </button>
+      <button type="button" (click)="shortRest()" [disabled]="applying()">
+        {{ applying() === 'shortRest' ? 'Resting…' : 'Short Rest' }}
+      </button>
+      <button type="button" (click)="longRest()" [disabled]="applying()">
+        {{ applying() === 'longRest' ? 'Resting…' : 'Long Rest' }}
       </button>
     </ng-container>
 

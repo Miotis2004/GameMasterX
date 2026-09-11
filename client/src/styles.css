@@ -1,2 +1,140 @@
 /* You can add global styles to this file, and also import other style files */
-body { margin-top: 3rem; }
+
+/* Accessibility and responsiveness baseline */
+:root {
+  --color-bg: #ffffff;
+  --color-text: #1a1a1a;
+  --color-primary: #005fcc;
+  --color-primary-contrast: #ffffff;
+  --color-focus: #005fcc;
+  --color-error: #d32f2f;
+  --color-warning: #ff9800;
+  --color-success: #2e7d32;
+  --font-base: 100%;
+}
+
+html {
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin-top: 3rem;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* Scalable text */
+html { font-size: 16px; }
+@media (min-width: 1280px) {
+  html { font-size: 18px; }
+}
+
+/* Skip link for keyboard users */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  z-index: 10000;
+}
+
+/* Visible focus indicators */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Remove outline for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Responsive base */
+* {
+  box-sizing: border-box;
+}
+
+img, video, canvas, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ensure sufficient contrast for common elements */
+a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+a:hover, a:focus {
+  text-decoration: underline;
+}
+
+button, [role="button"], input, select, textarea {
+  font: inherit;
+}
+
+/* High contrast focus for buttons */
+button:focus-visible, [role="button"]:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1024px) {
+  body { font-size: 0.95rem; }
+}
+@media (max-width: 768px) {
+  html { font-size: 16px; }
+  body { font-size: 1rem; }
+}
+
+/* Non-color-only state indicators */
+.status-indicator::before {
+  content: '';
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-right: 0.5em;
+  border: 2px solid currentColor;
+}
+
+/* Ensure form controls have visible labels */
+label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+/* Error messages accessible */
+.error-message {
+  color: var(--color-error);
+  font-weight: 600;
+}
+.error-message::before {
+  content: 'Error: ';
+}
+

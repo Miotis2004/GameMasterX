@@ -1,0 +1,24 @@
+<section class="polls">
+  <h2>Polls</h2>
+  <div class="create-poll">
+    <h3>Create Poll</h3>
+    <input [(ngModel)]="question" placeholder="Question" />
+    <div *ngFor="let opt of options; let i=index">
+      <input [(ngModel)]="options[i]" placeholder="Option {{ i+1 }}" />
+    </div>
+    <button (click)="addOption()">Add Option</button>
+    <button (click)="createPoll()">Create Poll</button>
+  </div>
+  <div class="poll-list">
+    <div *ngFor="let poll of polls" class="poll">
+      <h4>{{ poll.question }}</h4>
+      <ul>
+        <li *ngFor="let opt of poll.options; let i=index">
+          {{ opt }} - {{ poll.voteCounts?.[opt] || 0 }} votes
+          <button *ngIf="poll.status === 'OPEN'" (click)="vote(poll.id, i)">Vote</button>
+        </li>
+      </ul>
+      <button *ngIf="poll.status === 'OPEN'" (click)="closePoll(poll.id)">Close Poll</button>
+    </div>
+  </div>
+</section>

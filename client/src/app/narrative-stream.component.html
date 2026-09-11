@@ -1,7 +1,10 @@
 <section class="narrative-stream">
   <h2>Narrative Stream</h2>
   <div class="narration">
-    <p *ngIf="!narration()"><em>No narration yet</em></p>
-    <p *ngIf="narration()">{{ narration() }}</p>
+    <p *ngIf="!narration"><em>No narration yet</em></p>
+    <p *ngIf="narration">{{ narration }}</p>
+  </div>
+  <div class="status" *ngIf="streaming">
+    <em>Streaming AI narration...</em>
   </div>
 </section>

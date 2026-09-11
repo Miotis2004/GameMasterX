@@ -1,0 +1,47 @@
+.settings-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+.field {
+  margin-bottom: 1rem;
+}
+label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+input, textarea {
+  width: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.loading {
+  color: #555;
+}
+.error {
+  color: #b00020;
+  background: #ffebee;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+.success {
+  color: #1b5e20;
+  background: #e8f5e9;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+.error-msg {
+  color: #b00020;
+  font-size: 0.85rem;
+}
+button {
+  padding: 0.5rem 1rem;
+}
+button[disabled] {
+  opacity: 0.5;
+}

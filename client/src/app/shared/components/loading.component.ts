@@ -5,12 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'app-loading',
   standalone: true,
   imports: [CommonModule],
-  template: `
-    <div class="loading" *ngIf="visible()">
-      <div class="spinner"></div>
-      <span>{{ label() }}</span>
-    </div>
-  `,
+  templateUrl: './loading.component.html',
   styleUrl: './loading.component.css'
 })
 export class LoadingComponent {

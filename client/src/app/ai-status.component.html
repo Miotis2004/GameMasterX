@@ -1,15 +1,11 @@
 <section class="ai-status">
   <h2>AI Status</h2>
   <div class="status">
-    <span [class.enabled]="aiEnabled()" [class.disabled]="!aiEnabled()">
-      AI {{ aiEnabled() ? 'Enabled' : 'Disabled' }}
-    </span>
-  </div>
-  <div class="availability">
-    <span [class.available]="aiAvailable()" [class.unavailable]="!aiAvailable()">
-      {{ aiAvailable() ? 'Available' : 'Unavailable' }}
+    <span [ngClass]="state">
+      AI {{ state }}
     </span>
   </div>
   <button (click)="toggleEnabled()">Toggle Enabled</button>
-  <button (click)="setAvailability(!aiAvailable())">Toggle Availability</button>
+  <button (click)="toggleAvailability()">Toggle Availability</button>
+  <button (click)="clearDegraded()">Clear Degraded</button>
 </section>

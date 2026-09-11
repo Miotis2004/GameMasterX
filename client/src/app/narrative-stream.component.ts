@@ -1,6 +1,7 @@
-import { Component, signal, OnInit, inject } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CampaignEventsService } from './campaign-events.service';
+import { ActivatedRoute } from '@angular/router';
+import { NarrativeFacadeService } from './narrative-facade.service';
 
 @Component({
   selector: 'app-narrative-stream',
@@ -9,16 +10,27 @@ import { CampaignEventsService } from './campaign-events.service';
   templateUrl: './narrative-stream.component.html',
   styleUrl: './narrative-stream.component.css'
 })
-export class NarrativeStreamComponent implements OnInit {
-  private eventsService = inject(CampaignEventsService);
-  readonly narration = signal<string>('');
+export class NarrativeStreamComponent implements OnInit, OnDestroy {
+  private route = inject(ActivatedRoute);
+  private facade = inject(NarrativeFacadeService);
 
   ngOnInit(): void {
-    // Simple demo: accumulate narrative deltas from events
-    this.eventsService.events$.subscribe(event => {
-      if (event.type === 'narrative_delta' && event.payload?.delta) {
-        this.narration.update(current => current + event.payload.delta);
-      }
-    });
+    const campaignId = this.route.snapshot.paramMap.get('campaignId');
+    if (campaignId) {
+      this.facade.setCampaign(campaignId);
+      this.facade.startStream(campaignId, {});
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.facade.cancelStream();
+  }
+
+  get narration() {
+    return this.facade.narrativeHistory();
+  }
+
+  get streaming() {
+    return this.facade.streaming();
   }
 }

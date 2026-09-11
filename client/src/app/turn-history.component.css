@@ -1,0 +1,13 @@
+.page-header { margin-bottom: 1rem; }
+.crumb a { text-decoration: none; }
+h1 { margin: 0.5rem 0; }
+.turn-list { list-style: none; padding: 0; }
+.turn-record { border: 1px solid #ddd; margin-bottom: 1rem; padding: 0.75rem; background: #fff; }
+.turn-header { display: flex; gap: 1rem; flex-wrap: wrap; font-weight: 600; margin-bottom: 0.5rem; }
+.action-list { list-style: none; padding-left: 1rem; }
+.action-record { border-top: 1px solid #eee; padding: 0.5rem 0; }
+.action-summary { font-size: 0.95rem; margin-bottom: 0.25rem; }
+.action-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.5rem; font-size: 0.85rem; }
+.action-details strong { display: block; margin-bottom: 0.25rem; }
+.action-details ul { margin: 0; padding-left: 1rem; }
+.action-empty { color: #666; font-style: italic; }

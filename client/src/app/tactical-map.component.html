@@ -4,18 +4,24 @@
     <div class="map-info">
       <span>Zoom: {{ zoom() | number:'1.1-1' }}×</span>
       <span>Coordinates: {{ hoverPos()?.x ?? 0 }}, {{ hoverPos()?.y ?? 0 }}</span>
-      <span *ngIf="selectedId()">Selected: {{ participants().find(p => p.id === selectedId())?.name }}</span>
+      <span *ngIf="selectedId()">Selected: {{ tokens.find(t => t.id === selectedId())?.name }}</span>
+    </div>
+    <div aria-live="polite" class="sr-only">
+      {{ selectedId() ? 'Token selected ' + tokens.find(t => t.id === selectedId())?.name : 'No token selected' }}
     </div>
   </div>
 
   <div class="map-container"
        (mousedown)="onMouseDown($event)"
        (mouseup)="onMouseUp()"
-       (mousemove)="onMouseMove($event)">
+       (mousemove)="onMouseMove($event)"
+       role="application"
+       aria-label="Tactical map grid">
     <svg #svgRef
          class="tactical-svg"
          [attr.viewBox]="viewBox()"
-         [style.transform]="viewTransform()">
+         [style.transform]="viewTransform()"
+         aria-describedby="map-description">
       <!-- Grid background -->
       <g class="grid">
         <rect *ngFor="let cell of gridCells()"
@@ -26,30 +32,36 @@
               class="grid-cell"
               [class.visible]="isVisible(cell)"
               [class.reachable]="isReachable(cell)"
-              [class.hover]="hoverPos() && hoverPos()?.x === cell.x && hoverPos()?.y === cell.y"/>
+              [class.hover]="hoverPos() && hoverPos()?.x === cell.x && hoverPos()?.y === cell.y"
+              (click)="onCellClick(cell)"
+              role="button"
+              [attr.aria-label]="'Cell ' + cell.x + ',' + cell.y"/>
         <!-- Grid lines -->
         <g *ngFor="let idx of gridNumbers()">
-          <line [attr.x1]="idx*cellSize" [attr.y1]="0" [attr.x2]="idx*cellSize" [attr.y2]="gridSize*cellSize" stroke="#ccc" stroke-width="1"/>
-          <line [attr.x1]="0" [attr.y1]="idx*cellSize" [attr.x2]="gridSize*cellSize" [attr.y2]="idx*cellSize" stroke="#ccc" stroke-width="1"/>
+          <line [attr.x1]="idx*cellSize" [attr.y1]="0" [attr.x2]="idx*cellSize" [attr.y2]="gridHeight*cellSize" stroke="#ccc" stroke-width="1"/>
+          <line [attr.x1]="0" [attr.y1]="idx*cellSize" [attr.x2]="gridWidth*cellSize" [attr.y2]="idx*cellSize" stroke="#ccc" stroke-width="1"/>
         </g>
       </g>
 
-      <!-- Participants -->
-      <g class="participants">
-        <g *ngFor="let p of participants()">
+      <!-- Tokens -->
+      <g class="tokens">
+        <g *ngFor="let t of tokens">
           <circle
-            [attr.cx]="p.pos.x * cellSize + cellSize/2"
-            [attr.cy]="p.pos.y * cellSize + cellSize/2"
+            [attr.cx]="t.x * cellSize + cellSize/2"
+            [attr.cy]="t.y * cellSize + cellSize/2"
             r="14"
             class="participant"
-            [class.selected]="selectedId() === p.id"
-            (click)="selectParticipant(p.id); $event.stopPropagation()"/>
+            [class.selected]="selectedId() === t.id"
+            (click)="selectToken(t.id); $event.stopPropagation()"
+            [attr.aria-label]="'Token ' + t.name + ' at ' + t.x + ',' + t.y"
+            role="button"
+            tabindex="0"/>
           <text
-            [attr.x]="p.pos.x * cellSize + cellSize/2"
-            [attr.y]="p.pos.y * cellSize + cellSize/2 + 4"
+            [attr.x]="t.x * cellSize + cellSize/2"
+            [attr.y]="t.y * cellSize + cellSize/2 + 4"
             text-anchor="middle"
             class="participant-label">
-            {{ p.name[0] }}
+            {{ t.name?.[0] ?? '?' }}
           </text>
         </g>
       </g>
@@ -64,10 +76,13 @@
         </text>
       </g>
     </svg>
+    <div id="map-description" class="sr-only">
+      Tactical map with grid, tokens, zoom and pan controls. Click a token to select it and view movement preview.
+    </div>
   </div>
 
   <div class="map-footer">
-    <p>Click a participant to select. Drag to pan. Scroll to zoom.</p>
+    <p>Click a token to select. Drag to pan. Scroll to zoom.</p>
     <p>Movement preview shows reachable squares. Tiles outside visibility radius are dimmed.</p>
   </div>
 </div>

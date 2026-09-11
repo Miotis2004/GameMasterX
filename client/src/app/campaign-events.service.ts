@@ -19,9 +19,11 @@ export class CampaignEventsService {
   private currentCampaignId: string | null = null;
   private eventSubject = new Subject<CampaignEvent>();
   private stateSubject = new Subject<{ campaignId: string; sequenceNumber: number }>();
+  private connectionSubject = new Subject<'connected' | 'reconnecting' | 'disconnected'>();
 
   events$ = this.eventSubject.asObservable();
   state$ = this.stateSubject.asObservable();
+  connectionStatus$ = this.connectionSubject.asObservable();
 
   connect(campaignId: string) {
     if (this.currentCampaignId !== campaignId) {
@@ -47,6 +49,7 @@ export class CampaignEventsService {
       this.socket = new WebSocket(url);
       this.socket.onopen = () => {
         this.reconnectAttempts = 0;
+        this.connectionSubject.next('connected');
         // State refresh is handled by server sending state message on connect
       };
       this.socket.onmessage = (event) => {
@@ -75,6 +78,7 @@ export class CampaignEventsService {
       };
       this.socket.onclose = () => {
         this.socket = null;
+        this.connectionSubject.next('reconnecting');
         this.scheduleReconnect();
       };
     } catch (e) {

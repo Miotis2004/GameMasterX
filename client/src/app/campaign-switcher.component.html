@@ -1,0 +1,11 @@
+<div class="campaign-switcher" role="region" aria-label="Campaign switcher">
+  <label for="campaign-select">Campaign</label>
+  <select id="campaign-select" [disabled]="loading()" (change)="onSelect($any($event.target).value)">
+    <option value="" disabled>Select campaign</option>
+    <option *ngFor="let c of campaigns()" [value]="c.id" [selected]="selectedId() === c.id">
+      {{ c.name }}
+    </option>
+  </select>
+  <span *ngIf="loading()">Loading...</span>
+  <div *ngIf="error()" class="error">{{ error() }}</div>
+</div>
