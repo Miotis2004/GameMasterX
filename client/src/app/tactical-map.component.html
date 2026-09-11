@@ -1,0 +1,73 @@
+<div class="tactical-map-wrapper">
+  <div class="map-header">
+    <h2>Tactical Map</h2>
+    <div class="map-info">
+      <span>Zoom: {{ zoom() | number:'1.1-1' }}×</span>
+      <span>Coordinates: {{ hoverPos()?.x ?? 0 }}, {{ hoverPos()?.y ?? 0 }}</span>
+      <span *ngIf="selectedId()">Selected: {{ participants().find(p => p.id === selectedId())?.name }}</span>
+    </div>
+  </div>
+
+  <div class="map-container"
+       (mousedown)="onMouseDown($event)"
+       (mouseup)="onMouseUp()"
+       (mousemove)="onMouseMove($event)">
+    <svg #svgRef
+         class="tactical-svg"
+         [attr.viewBox]="viewBox()"
+         [style.transform]="viewTransform()">
+      <!-- Grid background -->
+      <g class="grid">
+        <rect *ngFor="let cell of gridCells()"
+              [attr.x]="cell.x * cellSize"
+              [attr.y]="cell.y * cellSize"
+              [attr.width]="cellSize"
+              [attr.height]="cellSize"
+              class="grid-cell"
+              [class.visible]="isVisible(cell)"
+              [class.reachable]="isReachable(cell)"
+              [class.hover]="hoverPos() && hoverPos()?.x === cell.x && hoverPos()?.y === cell.y"/>
+        <!-- Grid lines -->
+        <g *ngFor="let idx of gridNumbers()">
+          <line [attr.x1]="idx*cellSize" [attr.y1]="0" [attr.x2]="idx*cellSize" [attr.y2]="gridSize*cellSize" stroke="#ccc" stroke-width="1"/>
+          <line [attr.x1]="0" [attr.y1]="idx*cellSize" [attr.x2]="gridSize*cellSize" [attr.y2]="idx*cellSize" stroke="#ccc" stroke-width="1"/>
+        </g>
+      </g>
+
+      <!-- Participants -->
+      <g class="participants">
+        <g *ngFor="let p of participants()">
+          <circle
+            [attr.cx]="p.pos.x * cellSize + cellSize/2"
+            [attr.cy]="p.pos.y * cellSize + cellSize/2"
+            r="14"
+            class="participant"
+            [class.selected]="selectedId() === p.id"
+            (click)="selectParticipant(p.id); $event.stopPropagation()"/>
+          <text
+            [attr.x]="p.pos.x * cellSize + cellSize/2"
+            [attr.y]="p.pos.y * cellSize + cellSize/2 + 4"
+            text-anchor="middle"
+            class="participant-label">
+            {{ p.name[0] }}
+          </text>
+        </g>
+      </g>
+
+      <!-- Coordinate overlay -->
+      <g class="coords">
+        <text *ngFor="let cell of gridCells()"
+              [attr.x]="cell.x * cellSize + 4"
+              [attr.y]="cell.y * cellSize + 12"
+              class="coord-label">
+          {{ cell.x }},{{ cell.y }}
+        </text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="map-footer">
+    <p>Click a participant to select. Drag to pan. Scroll to zoom.</p>
+    <p>Movement preview shows reachable squares. Tiles outside visibility radius are dimmed.</p>
+  </div>
+</div>

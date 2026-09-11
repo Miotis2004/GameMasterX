@@ -73,6 +73,14 @@ export const routes: Routes = [
         path: 'encounters/:id',
         component: EncounterPlayComponent,
       },
+      {
+        path: 'encounters/:id/map',
+        loadComponent: () => import('./tactical-map.component').then((m) => m.TacticalMapComponent),
+      },
+      {
+        path: 'campaigns/:campaignId/narrative',
+        loadComponent: () => import('./campaign-narrative.component').then((m) => m.CampaignNarrativeComponent),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

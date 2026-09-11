@@ -1,0 +1,7 @@
+.action-input {
+  padding: 1rem;
+  border: 1px solid #ddd;
+}
+.action-input input {
+  margin-right: 0.5rem;
+}

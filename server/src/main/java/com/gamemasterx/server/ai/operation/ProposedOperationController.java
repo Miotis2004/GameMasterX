@@ -75,8 +75,9 @@ public class ProposedOperationController {
             @RequestParam(value = "idempotencyKey", required = false) String idempotencyKey,
             HttpServletRequest httpRequest) {
         String actor = requireActor(httpRequest);
+        String correlationId = getCorrelationId(httpRequest);
         return ResponseEntity.ok(executionService.execute(
-                id, request, expectedRevision, idempotencyKey, actor));
+                id, request, expectedRevision, idempotencyKey, actor, correlationId));
     }
 
     /**

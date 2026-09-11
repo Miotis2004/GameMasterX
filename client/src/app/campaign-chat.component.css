@@ -1,0 +1,14 @@
+.campaign-chat {
+  padding: 1rem;
+  border: 1px solid #ddd;
+}
+.messages {
+  list-style: none;
+  padding: 0;
+}
+.messages li {
+  margin-bottom: 0.5rem;
+}
+.filters button {
+  margin-right: 0.5rem;
+}

@@ -23,7 +23,7 @@ import java.time.Duration;
 public class AiProviderProperties {
 
     /** Overall switch for the AI layer. */
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     /**
      * External provider endpoint. Empty means "no external provider", which

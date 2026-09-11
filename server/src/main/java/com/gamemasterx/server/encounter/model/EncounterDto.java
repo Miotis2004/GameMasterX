@@ -53,11 +53,30 @@ public class EncounterDto {
         dto.turn = encounter.getTurn();
         dto.revision = encounter.getRevision();
         List<ParticipantDto> participants = new java.util.ArrayList<>();
+        java.util.Map<String, Encounter.Participant> participantMap = new java.util.HashMap<>();
         for (Encounter.Participant p : encounter.getParticipants()) {
+            participantMap.put(p.getId(), p);
+        }
+        for (Encounter.Participant p : encounter.getParticipants()) {
+            // Filter invisible tokens: participants marked hidden in states are not exposed
+            boolean isHidden = p.getStates() != null && Boolean.TRUE.equals(p.getStates().get("hidden"));
+            if (isHidden) {
+                continue;
+            }
             participants.add(toParticipant(p));
         }
         dto.participants = participants;
-        dto.initiativeOrder = encounter.getInitiativeOrder();
+        // Filter initiative order to exclude hidden participants
+        java.util.List<String> filteredInitiative = new java.util.ArrayList<>();
+        for (String pid : encounter.getInitiativeOrder()) {
+            Encounter.Participant p = participantMap.get(pid);
+            if (p == null) continue;
+            boolean isHidden = p.getStates() != null && Boolean.TRUE.equals(p.getStates().get("hidden"));
+            if (!isHidden) {
+                filteredInitiative.add(pid);
+            }
+        }
+        dto.initiativeOrder = filteredInitiative;
         return dto;
     }
 

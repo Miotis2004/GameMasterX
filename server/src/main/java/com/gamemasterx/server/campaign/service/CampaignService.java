@@ -9,6 +9,7 @@ import com.gamemasterx.server.campaign.membership.model.MembershipRole;
 import com.gamemasterx.server.campaign.membership.service.MembershipService;
 import com.gamemasterx.server.campaign.repository.CampaignRepository;
 import com.gamemasterx.server.adventure.repository.AdventureRepository;
+import com.gamemasterx.server.campaign.websocket.CampaignEventWebSocketHandler;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -64,6 +65,7 @@ public class CampaignService {
         campaignRepository.save(campaign);
         // Establish ownership so subsequent operations are authorized.
         membershipService.grantOwner(id, creator);
+        CampaignEventWebSocketHandler.broadcast(id, "campaign_created", "{\"id\":\"" + id + "\"}");
         return toDto(campaign);
     }
 
@@ -124,7 +126,9 @@ public class CampaignService {
 
         existing.setRevision(existing.getRevision() + 1);
         existing.setUpdatedAt(Instant.now());
-        return toDto(campaignRepository.save(existing));
+        CampaignDto dto = toDto(campaignRepository.save(existing));
+        CampaignEventWebSocketHandler.broadcast(id, "campaign_updated", "{\"id\":\"" + id + "\"}");
+        return dto;
     }
 
     /**
@@ -137,7 +141,9 @@ public class CampaignService {
         existing.setStatus(CampaignStatus.ARCHIVED);
         existing.setRevision(existing.getRevision() + 1);
         existing.setUpdatedAt(Instant.now());
-        return toDto(campaignRepository.save(existing));
+        CampaignDto dto = toDto(campaignRepository.save(existing));
+        CampaignEventWebSocketHandler.broadcast(id, "campaign_archived", "{\"id\":\"" + id + "\"}");
+        return dto;
     }
 
     private Campaign requireCampaign(String id) {
@@ -147,8 +153,7 @@ public class CampaignService {
 
     /**
      * Confirms the supplied adventure identifier references a real authored
-     * adventure, so a campaign only ever stores an existing adventure
-     * reference.
+     * adventure, so a campaign never stores a dangling reference.
      *
      * @param adventureId the adventure identifier to resolve
      * @return the validated, non-blank adventure identifier

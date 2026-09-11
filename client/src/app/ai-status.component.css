@@ -1,0 +1,8 @@
+.ai-status {
+  padding: 1rem;
+  border: 1px solid #ddd;
+}
+.enabled { color: green; }
+.disabled { color: red; }
+.available { color: green; }
+.unavailable { color: red; }

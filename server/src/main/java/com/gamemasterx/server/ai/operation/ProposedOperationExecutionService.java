@@ -5,8 +5,13 @@ import com.gamemasterx.server.encounter.model.EncounterDto;
 import com.gamemasterx.server.encounter.service.EncounterService;
 import com.gamemasterx.server.ai.operation.validate.OperationValidator;
 import com.gamemasterx.server.ai.operation.validate.ProposedOperationContext;
+import com.gamemasterx.server.gameplay.model.Audit;
+import com.gamemasterx.server.gameplay.model.MutationDecision;
+import com.gamemasterx.server.gameplay.service.GameplayAuditService;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,15 +40,19 @@ public class ProposedOperationExecutionService {
 
     private final EncounterService encounterService;
     private final OperationValidator validator;
+    private final GameplayAuditService gameplayAuditService;
 
     /**
      * @param encounterService the backend authority for encounter state mutation
      * @param validator        the backend-authoritative validation orchestrator
+     * @param gameplayAuditService the append-only audit service
      */
     public ProposedOperationExecutionService(EncounterService encounterService,
-                                             OperationValidator validator) {
+                                             OperationValidator validator,
+                                             GameplayAuditService gameplayAuditService) {
         this.encounterService = encounterService;
         this.validator = validator;
+        this.gameplayAuditService = gameplayAuditService;
     }
 
     /**
@@ -62,16 +71,19 @@ public class ProposedOperationExecutionService {
      * @param expectedRevision the revision the caller expects, or {@code null}
      * @param idempotencyKey   the caller-supplied idempotency key, or {@code null}
      * @param actor          the authenticated caller
+     * @param correlationId   the correlation identifier for tracing, or {@code null}
      * @return the updated encounter
      * @throws OperationValidationException when the proposal fails any
      *                                      validation dimension or is a repeated
      *                                      idempotent key; raised before execution
      */
     public EncounterDto execute(String encounterId, ProposedOperationRequest request,
-                                Long expectedRevision, String idempotencyKey, String actor) {
+                                Long expectedRevision, String idempotencyKey, String actor,
+                                String correlationId) {
         ProposedOperation proposal = toOperation(request);
 
         Encounter encounter = encounterService.loadForOperation(encounterId, actor);
+        int revisionBefore = encounter.getRevision();
         ProposedOperationContext context = new ProposedOperationContext(
                 actor,
                 encounter.getCampaignId(),
@@ -81,7 +93,12 @@ public class ProposedOperationExecutionService {
                 encounter,
                 null);
 
-        validator.validateStrict(proposal, context);
+        try {
+            validator.validateStrict(proposal, context);
+        } catch (com.gamemasterx.server.ai.operation.validate.OperationValidationException ex) {
+            recordRejectedProposalAudit(encounter, proposal, actor, revisionBefore, correlationId, ex.getMessage());
+            throw ex;
+        }
 
         return dispatch(encounterId, proposal, actor, expectedRevision, idempotencyKey);
     }
@@ -217,5 +234,41 @@ public class ProposedOperationExecutionService {
             return b;
         }
         return null;
+    }
+
+    private void recordRejectedProposalAudit(Encounter encounter, ProposedOperation proposal, String actor, int revisionBefore, String correlationId, String reason) {
+        String campaignId = encounter.getCampaignId();
+        String encounterId = encounter.getId();
+        String subjectType = proposal.operationType().name();
+        String subjectId = proposal.targetId();
+        String before = "schemaVersion=" + proposal.schemaVersion()
+                + ", operationType=" + proposal.operationType()
+                + ", targetKind=" + proposal.targetKind()
+                + ", targetId=" + proposal.targetId()
+                + ", targetName=" + proposal.targetName()
+                + ", parameters=" + proposal.parameters()
+                + ", justification=" + proposal.justification()
+                + ", priority=" + proposal.priority()
+                + ", constraints=" + proposal.constraints();
+        Audit audit = new Audit(
+                null,
+                0L,
+                campaignId,
+                encounterId,
+                null,
+                null,
+                null,
+                subjectType,
+                subjectId,
+                before,
+                null,
+                MutationDecision.REJECTED,
+                actor,
+                reason,
+                revisionBefore,
+                revisionBefore,
+                Instant.now(),
+                correlationId);
+        gameplayAuditService.appendAuditEntries(List.of(audit));
     }
 }

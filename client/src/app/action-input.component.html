@@ -1,0 +1,12 @@
+<section class="action-input">
+  <h2>Action Input</h2>
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <label>
+      Action
+      <input type="text" formControlName="action" placeholder="Enter action" />
+    </label>
+    <button type="submit" [disabled]="submitting()">Submit</button>
+  </form>
+  <p *ngIf="lastResult()">{{ lastResult() }}</p>
+  <p *ngIf="submitting()">Submitting...</p>
+</section>

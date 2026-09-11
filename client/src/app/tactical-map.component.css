@@ -1,0 +1,101 @@
+.tactical-map-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1a1a1a;
+  color: #eee;
+  font-family: system-ui, sans-serif;
+}
+
+.map-header {
+  padding: 0.5rem 1rem;
+  background: #222;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.map-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.map-info span {
+  margin-left: 1rem;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.map-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+  background: #111;
+}
+
+.map-container:active {
+  cursor: grabbing;
+}
+
+.tactical-svg {
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
+}
+
+.grid-cell {
+  fill: #222;
+  stroke: #333;
+  stroke-width: 1;
+}
+
+.grid-cell.visible {
+  fill: #222;
+}
+
+.grid-cell:not(.visible) {
+  fill: #0a0a0a;
+  opacity: 0.4;
+}
+
+.grid-cell.reachable {
+  fill: #2a4a2a;
+}
+
+.grid-cell.hover {
+  stroke: #ffcc00;
+  stroke-width: 2;
+}
+
+.participant {
+  fill: #4a90e2;
+  stroke: #fff;
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.participant.selected {
+  fill: #f5a623;
+  stroke: #fff;
+}
+
+.participant-label {
+  fill: #fff;
+  font-size: 10px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.coord-label {
+  fill: #555;
+  font-size: 8px;
+  pointer-events: none;
+}
+
+.map-footer {
+  padding: 0.5rem 1rem;
+  background: #222;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}

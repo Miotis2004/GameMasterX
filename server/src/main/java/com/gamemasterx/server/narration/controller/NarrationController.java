@@ -9,7 +9,10 @@ import com.gamemasterx.server.exception.ErrorResponse;
 import com.gamemasterx.server.filter.AuthFilter;
 import com.gamemasterx.server.narration.model.NarrationContext;
 import com.gamemasterx.server.narration.model.NarrationInput;
+import com.gamemasterx.server.narration.model.NarrativeMessage;
+import com.gamemasterx.server.narration.model.NarrativeMessageType;
 import com.gamemasterx.server.narration.service.NarrationContextAssembler;
+import com.gamemasterx.server.narration.service.NarrativePersistenceService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -19,7 +22,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,10 +52,12 @@ public class NarrationController {
 
     private final NarrationContextAssembler assembler;
     private final AiGenerationService aiGenerationService;
+    private final NarrativePersistenceService narrativePersistenceService;
 
-    public NarrationController(NarrationContextAssembler assembler, AiGenerationService aiGenerationService) {
+    public NarrationController(NarrationContextAssembler assembler, AiGenerationService aiGenerationService, NarrativePersistenceService narrativePersistenceService) {
         this.assembler = assembler;
         this.aiGenerationService = aiGenerationService;
+        this.narrativePersistenceService = narrativePersistenceService;
     }
 
     /**
@@ -112,6 +119,74 @@ public class NarrationController {
                 context.playerContextBounded()));
     }
 
+    @PostMapping("/stream")
+    public SseEmitter stream(
+            @RequestBody NarrationAssembleRequest request,
+            HttpServletRequest httpRequest) {
+        SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
+        String turnId = UUID.randomUUID().toString();
+        int sequence = 0;
+
+        try {
+            String actor = requireActor(httpRequest);
+            NarrationInput input = request.toInput(actor);
+            NarrationContext context = assembler.assemble(input);
+
+            if (!context.separationVerified()) {
+                throw new IllegalStateException("Narration context separation check failed");
+            }
+
+            AiGenerationRequest generationRequest = new AiGenerationRequest(
+                    context.instruction(), context.playerVisibleContextLines(), null);
+            AiGenerationResult result = aiGenerationService.generate(generationRequest);
+
+            sequence++;
+            String startPayload = "{\"turnId\":" + turnId + "\",\"sequenceNumber\":" + sequence + ",\"type\":\"start\"}";
+            emitter.send(SseEmitter.event().name("narration").data(startPayload));
+
+            String text = result.text();
+            int chunkSize = 40;
+            for (int i = 0; i < text.length(); i += chunkSize) {
+                int end = Math.min(i + chunkSize, text.length());
+                String chunk = text.substring(i, end);
+                sequence++;
+                String deltaPayload = "{\"turnId\":" + turnId + "\",\"sequenceNumber\":" + sequence + ",\"type\":\"delta\",\"delta\":\"" + escapeJson(chunk) + "\"}";
+                emitter.send(SseEmitter.event().name("narration").data(deltaPayload));
+            }
+
+            sequence++;
+            String endPayload = "{\"turnId\":" + turnId + "\",\"sequenceNumber\":" + sequence + ",\"type\":\"end\"}";
+            emitter.send(SseEmitter.event().name("narration").data(endPayload));
+
+            // Persist completed narrative durably after streaming completes
+            try {
+                NarrativeMessage message = new NarrativeMessage(
+                        UUID.randomUUID().toString(),
+                        NarrativeMessageType.NARRATIVE,
+                        text,
+                        actor,
+                        Instant.now(),
+                        false
+                );
+                narrativePersistenceService.persistCompleted(request.campaignId(), request.encounterId(), turnId, List.of(message));
+            } catch (Exception ignored) {
+                // Persistence failures should not interrupt streaming
+            }
+
+            emitter.complete();
+        } catch (Exception ex) {
+            try {
+                String errorPayload = "{\"turnId\":" + turnId + "\",\"sequenceNumber\":" + sequence + ",\"type\":\"error\",\"message\":\"" + escapeJson(ex.getMessage() != null ? ex.getMessage() : "unknown") + "\"}";
+                emitter.send(SseEmitter.event().name("error").data(errorPayload));
+            } catch (Exception ignored) {}
+            emitter.completeWithError(ex);
+        }
+
+        emitter.onCompletion(() -> {});
+        emitter.onTimeout(() -> {});
+        return emitter;
+    }
+
     private String requireActor(HttpServletRequest request) {
         Object attr = request.getAttribute(AuthFilter.AUTH_USER_ATTR);
         if (attr instanceof String s && !s.isBlank()) {
@@ -155,6 +230,11 @@ public class NarrationController {
             return s;
         }
         return UUID.randomUUID().toString();
+    }
+
+    private static String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
     }
 
     /**

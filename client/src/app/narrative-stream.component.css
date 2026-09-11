@@ -1,0 +1,7 @@
+.narrative-stream {
+  padding: 1rem;
+  border: 1px solid #ddd;
+}
+.narration {
+  white-space: pre-wrap;
+}

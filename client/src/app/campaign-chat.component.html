@@ -1,0 +1,13 @@
+<section class="campaign-chat">
+  <h2>Campaign Chat</h2>
+  <div class="filters">
+    <button (click)="setFilter('ALL')">All</button>
+    <button (click)="setFilter('GAME_MASTER')">GM</button>
+    <button (click)="setFilter('PLAYER')">Player</button>
+  </div>
+  <ul class="messages">
+    <li *ngFor="let msg of filteredMessages()">
+      <strong>{{ msg.author }} ({{ msg.role }}):</strong> {{ msg.text }}
+    </li>
+  </ul>
+</section>
