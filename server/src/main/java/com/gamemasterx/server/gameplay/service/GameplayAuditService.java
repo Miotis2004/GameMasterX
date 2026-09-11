@@ -18,17 +18,21 @@ import java.util.UUID;
  * Application service that owns the immutable, append-oriented storage of turn
  * and audit history.
  *
- * <p>This service is the single place where {@link Turn} and {@link Audit}
+ * <p>
+ * This service is the single place where {@link Turn} and {@link Audit}
  * documents are persisted, and it enforces the append-only invariant: every
  * write is a brand-new {@code insert} of a document that has never existed
  * before. Documents are <b>never</b> updated in place or deleted, so prior turn
  * and audit history can never be mutated. This is what makes the history
- * immutable from the persistence layer's point of view.</p>
+ * immutable from the persistence layer's point of view.
+ * </p>
  *
- * <p>Turns are appended one document per turn; audit entries are appended one
+ * <p>
+ * Turns are appended one document per turn; audit entries are appended one
  * document per audited event, each assigned the next monotonically increasing
  * {@link Audit#auditSequence()} so the log reads in a stable global order
- * regardless of wall-clock timing.</p>
+ * regardless of wall-clock timing.
+ * </p>
  */
 @Service
 public class GameplayAuditService {
@@ -39,21 +43,26 @@ public class GameplayAuditService {
      * the turn are captured on both the {@link Turn} document and the resulting
      * {@link Audit} entries.
      *
-     * @param turn         the turn to append; its {@code id} is assigned when missing
-     * @param mutations    the mutations considered during the turn (may be empty or {@code null})
-     * @param resolutions  the decision applied to each corresponding mutation (same size as {@code mutations})
-     * @param reasons      a reason for each rejected mutation (same size as {@code mutations}, may be {@code null})
+     * @param turn           the turn to append; its {@code id} is assigned when
+     *                       missing
+     * @param mutations      the mutations considered during the turn (may be empty
+     *                       or {@code null})
+     * @param resolutions    the decision applied to each corresponding mutation
+     *                       (same size as {@code mutations})
+     * @param reasons        a reason for each rejected mutation (same size as
+     *                       {@code mutations}, may be {@code null})
      * @param revisionBefore the encounter revision before the turn
      * @param revisionAfter  the encounter revision after the turn
-     * @param actor        the acting actor who recorded the turn
-     * @param correlationId the correlation id, or {@code null}
+     * @param actor          the acting actor who recorded the turn
+     * @param correlationId  the correlation id, or {@code null}
      * @return the appended turn document (with its assigned id)
-     * @throws IllegalArgumentException if {@code resolutions} does not match the number of mutations
+     * @throws IllegalArgumentException if {@code resolutions} does not match the
+     *                                  number of mutations
      */
     @Transactional
     public Turn appendTurnAndAudit(Turn turn, List<Mutation> mutations, List<MutationDecision> resolutions,
-                                   List<String> reasons, int revisionBefore, int revisionAfter,
-                                   String actor, String correlationId) {
+            List<String> reasons, int revisionBefore, int revisionAfter,
+            String actor, String correlationId) {
         Turn savedTurn = appendTurn(turn);
 
         List<Mutation> resolved = (mutations != null) ? List.copyOf(mutations) : List.of();
@@ -187,9 +196,10 @@ public class GameplayAuditService {
      * @return the next monotonic audit sequence number (0 when the log is empty)
      */
     private long nextAuditSequence() {
-        Long last = auditRepository.findByFirstByOrderByAuditSequenceDesc()
+        Long last = auditRepository.findFirstByOrderByAuditSequenceDesc()
                 .map(Audit::auditSequence)
                 .orElse(-1L);
+
         return last + 1L;
     }
 

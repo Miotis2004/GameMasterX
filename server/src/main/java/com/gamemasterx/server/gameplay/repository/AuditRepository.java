@@ -8,19 +8,24 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Spring Data MongoDB repository for the immutable, append-oriented {@link Audit}
+ * Spring Data MongoDB repository for the immutable, append-oriented
+ * {@link Audit}
  * log.
  *
- * <p>The audit log is append-only: the only write operation offered by this
+ * <p>
+ * The audit log is append-only: the only write operation offered by this
  * repository is {@link #save} of a brand-new audit document. Existing audit
  * documents are never updated in place or deleted, so the full historical
  * record of accepted and rejected mutations can never be mutated or
- * retro-edited.</p>
+ * retro-edited.
+ * </p>
  *
- * <p>Each entry carries a monotonically increasing {@link Audit#auditSequence()};
+ * <p>
+ * Each entry carries a monotonically increasing {@link Audit#auditSequence()};
  * {@link #findFirstByOrderByAuditSequenceDesc()} lets the audit service assign
  * the next sequence number so new entries are appended in a stable, globally
- * increasing order.</p>
+ * increasing order.
+ * </p>
  */
 @Repository
 public interface AuditRepository extends MongoRepository<Audit, String> {
@@ -45,10 +50,10 @@ public interface AuditRepository extends MongoRepository<Audit, String> {
 
     /**
      * @return the highest-sequence audit entry currently stored, if any. Used by
-     * the audit service to assign the next monotonic sequence number when
-     * appending a new entry.
+     *         the audit service to assign the next monotonic sequence number when
+     *         appending a new entry.
      */
-    Optional<Audit> findByFirstByOrderByAuditSequenceDesc();
+    Optional<Audit> findFirstByOrderByAuditSequenceDesc();
 
     /**
      * @param encounterId the encounter identifier

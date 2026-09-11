@@ -16,24 +16,26 @@ import java.util.function.Supplier;
  * Coordinates the atomic commit of an encounter aggregate together with its
  * immutable turn and audit history.
  *
- * <p>This coordinator is the single enforcement point for three invariants that
- * a correct commit must satisfy:</p>
+ * <p>
+ * This coordinator is the single enforcement point for three invariants that
+ * a correct commit must satisfy:
+ * </p>
  *
  * <ul>
- *   <li><b>Idempotency</b> &ndash; when a caller supplies an idempotency key and
- *   that key has already completed a successful operation, the stored outcome is
- *   returned and the guarded operation is never run again. This is what prevents
- *   a retry from applying damage twice, consuming a resource twice, rolling the
- *   dice twice, or recording a turn twice.</li>
- *   <li><b>Transactional commit</b> &ndash; when the deployment is a
- *   transaction-capable replica set, the aggregate save and the turn/audit append
- *   run inside a single multi-document transaction, so they either both commit or
- *   neither does (no partial commit).</li>
- *   <li><b>Clear diagnostics when transactions are unavailable</b> &ndash; when
- *   the deployment cannot provide transactions and transactional commit is
- *   required, the commit is rejected with a clear diagnostic and no partial
- *   commit; otherwise a non-transactional fallback runs with a clearly recorded
- *   diagnostic.</li>
+ * <li><b>Idempotency</b> &ndash; when a caller supplies an idempotency key and
+ * that key has already completed a successful operation, the stored outcome is
+ * returned and the guarded operation is never run again. This is what prevents
+ * a retry from applying damage twice, consuming a resource twice, rolling the
+ * dice twice, or recording a turn twice.</li>
+ * <li><b>Transactional commit</b> &ndash; when the deployment is a
+ * transaction-capable replica set, the aggregate save and the turn/audit append
+ * run inside a single multi-document transaction, so they either both commit or
+ * neither does (no partial commit).</li>
+ * <li><b>Clear diagnostics when transactions are unavailable</b> &ndash; when
+ * the deployment cannot provide transactions and transactional commit is
+ * required, the commit is rejected with a clear diagnostic and no partial
+ * commit; otherwise a non-transactional fallback runs with a clearly recorded
+ * diagnostic.</li>
  * </ul>
  */
 @Service
@@ -41,7 +43,7 @@ public class EncounterCommitCoordinator {
 
     private static final Logger logger = LoggerFactory.getLogger(EncounterCommitCoordinator.class);
 
-    private final EncounterCommitDelegate commitDelegate;
+    // private final EncounterCommitDelegate commitDelegate;
     private final IdempotencyService idempotencyService;
     private final MongoTransactionCapability transactionCapability;
     private final TransactionTemplate transactionTemplate;
@@ -50,19 +52,19 @@ public class EncounterCommitCoordinator {
     /**
      * Creates the coordinator.
      *
-     * @param commitDelegate        performs the actual aggregate save and audit append
-     * @param idempotencyService    the idempotency-key store
-     * @param transactionCapability the MongoDB transaction capability detector
-     * @param transactionTemplate   the transaction template bound to MongoDB
+     * @param commitDelegate             performs the actual aggregate save and
+     *                                   audit append
+     * @param idempotencyService         the idempotency-key store
+     * @param transactionCapability      the MongoDB transaction capability detector
+     * @param transactionTemplate        the transaction template bound to MongoDB
      * @param requireTransactionalCommit whether commits must be transactional
      */
-    public EncounterCommitCoordinator(EncounterCommitDelegate commitDelegate,
-                                      IdempotencyService idempotencyService,
-                                      MongoTransactionCapability transactionCapability,
-                                      TransactionTemplate transactionTemplate,
-                                      @Value("${game.master.x.encounter.require-transactional-commit:true}")
-                                              boolean requireTransactionalCommit) {
-        this.commitDelegate = commitDelegate;
+    public EncounterCommitCoordinator(
+            IdempotencyService idempotencyService,
+            MongoTransactionCapability transactionCapability,
+            TransactionTemplate transactionTemplate,
+            @Value("${game.master.x.encounter.require-transactional-commit:true}") boolean requireTransactionalCommit) {
+
         this.idempotencyService = idempotencyService;
         this.transactionCapability = transactionCapability;
         this.transactionTemplate = transactionTemplate;
@@ -118,7 +120,7 @@ public class EncounterCommitCoordinator {
     }
 
     private CommitOutcome commitTransactional(String idempotencyKey, String operation,
-                                              Supplier<EncounterDto> supplier) {
+            Supplier<EncounterDto> supplier) {
         EncounterDto result = transactionTemplate.execute(status -> {
             EncounterDto outcome = supplier.get();
             markCompleted(idempotencyKey, outcome);
@@ -129,10 +131,10 @@ public class EncounterCommitCoordinator {
     }
 
     private CommitOutcome commitNonTransactional(String idempotencyKey, String operation,
-                                                 Supplier<EncounterDto> supplier) {
+            Supplier<EncounterDto> supplier) {
         logger.warn("Transactional commit unavailable for '{}' (transactionMode={}); "
-                        + "running with a non-transactional commit. Ensure MongoDB is a replica "
-                        + "set to enable atomic commit of the encounter and its audit history.",
+                + "running with a non-transactional commit. Ensure MongoDB is a replica "
+                + "set to enable atomic commit of the encounter and its audit history.",
                 operation, transactionCapability.transactionMode());
         EncounterDto result = supplier.get();
         markCompleted(idempotencyKey, result);
@@ -153,13 +155,13 @@ public class EncounterCommitCoordinator {
      * Implemented by {@link EncounterService}; kept as a separate type so the
      * coordinator stays focused on transaction and idempotency concerns.
      */
-    @FunctionalInterface
-    public interface EncounterCommitDelegate {
-        /**
-         * Saves the already-mutated encounter and appends the turn/audit history.
-         *
-         * @return the resulting encounter DTO
-         */
-        EncounterDto commit();
-    }
+    // @FunctionalInterface
+    // public interface EncounterCommitDelegate {
+    // /**
+    // * Saves the already-mutated encounter and appends the turn/audit history.
+    // *
+    // * @return the resulting encounter DTO
+    // */
+    // EncounterDto commit();
+    // }
 }
