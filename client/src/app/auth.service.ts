@@ -12,7 +12,7 @@ export class AuthService {
   constructor(private http: HttpClient, private status: StatusService) {}
 
   login(username: string, password: string) {
-    this.http.post(`${this.apiBase}/auth/login`, { username, password }, { withCredentials: true }).subscribe({
+    this.http.post(`${this.apiBase}/auth/login`, { username, password }).subscribe({
       next: () => {
         this.isAuthenticated.set(true);
         this.username.set(username);
@@ -27,7 +27,7 @@ export class AuthService {
   }
 
   logout() {
-    this.http.post(`${this.apiBase}/auth/logout`, {}, { withCredentials: true }).subscribe({
+    this.http.post(`${this.apiBase}/auth/logout`, {}).subscribe({
       next: () => {
         this.isAuthenticated.set(false);
         this.username.set(null);

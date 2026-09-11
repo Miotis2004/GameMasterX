@@ -1,7 +1,7 @@
 package com.gamemasterx.server.admin.service;
 
-import com.gamemasterx.server.admin.model.AdminDto;
-import com.gamemasterx.server.admin.repository.AdminRepository;
+import com.gamemasterx.server.user.model.UserDto;
+import com.gamemasterx.server.user.repository.UserRepository;
 import com.gamemasterx.server.security.PasswordCodec;
 import org.springframework.stereotype.Service;
 
@@ -11,14 +11,14 @@ import java.util.UUID;
 @Service
 public class AdminService {
 
-    private final AdminRepository adminRepository;
+    private final UserRepository userRepository;
 
-    public AdminService(AdminRepository adminRepository) {
-        this.adminRepository = adminRepository;
+    public AdminService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    public AdminDto createAdmin(String username, String email, String password) {
-        if (adminRepository.count() > 0) {
+    public UserDto createAdmin(String username, String email, String password) {
+        if (userRepository.existsByGlobalAdminTrue()) {
             throw new IllegalStateException("Administrator already exists");
         }
 
@@ -27,14 +27,18 @@ public class AdminService {
         String id = UUID.randomUUID().toString();
         String passwordHash = PasswordCodec.hash(password);
 
-        AdminDto admin = new AdminDto();
+        UserDto admin = new UserDto();
         admin.setId(id);
         admin.setUsername(username);
         admin.setEmail(email);
         admin.setPasswordHash(passwordHash);
         admin.setCreatedAt(Instant.now());
+        admin.setUpdatedAt(Instant.now());
+        admin.setSchemaVersion(1);
+        admin.setRevision(1);
+        admin.setGlobalAdmin(true);
 
-        return adminRepository.save(admin);
+        return userRepository.save(admin);
     }
 
     private void validateInput(String username, String email, String password) {
@@ -50,6 +54,6 @@ public class AdminService {
     }
 
     public boolean adminExists() {
-        return adminRepository.count() > 0;
+        return userRepository.existsByGlobalAdminTrue();
     }
 }

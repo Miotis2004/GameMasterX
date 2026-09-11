@@ -100,19 +100,19 @@ export class CommunicationFacadeService {
 
   // Reactions submitted via backend API
   addReaction(campaignId: string, messageId: string, reaction: string) {
-    return this.http.post(`${this.apiBase}/campaigns/${campaignId}/messages/${messageId}/reactions`, { reaction }, { withCredentials: true });
+    return this.http.post(`${this.apiBase}/campaigns/${campaignId}/messages/${messageId}/reactions`, { reaction });
   }
 
   // Polls via backend APIs
   createPoll(campaignId: string, request: { question: string; options: string[] }) {
-    return this.http.post(`${this.apiBase}/campaigns/${campaignId}/polls`, request, { withCredentials: true });
+    return this.http.post(`${this.apiBase}/campaigns/${campaignId}/polls`, request);
   }
 
   votePoll(campaignId: string, pollId: string, optionIndex: number) {
-    return this.http.post(`${this.apiBase}/campaigns/${campaignId}/polls/${pollId}/vote`, { optionIndex }, { withCredentials: true });
+    return this.http.post(`${this.apiBase}/campaigns/${campaignId}/polls/${pollId}/vote`, { optionIndex });
   }
 
   closePoll(campaignId: string, pollId: string) {
-    return this.http.post(`${this.apiBase}/campaigns/${campaignId}/polls/${pollId}/close`, {}, { withCredentials: true });
+    return this.http.post(`${this.apiBase}/campaigns/${campaignId}/polls/${pollId}/close`, {});
   }
 }

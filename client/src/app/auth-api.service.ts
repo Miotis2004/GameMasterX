@@ -20,11 +20,11 @@ export class AuthApiService {
   constructor(private http: HttpClient) {}
 
   login(request: LoginRequest): Observable<void> {
-    return this.http.post<void>(`${this.apiBase}/auth/login`, request, { withCredentials: true });
+    return this.http.post<void>(`${this.apiBase}/auth/login`, request);
   }
 
   logout(): Observable<void> {
-    return this.http.post<void>(`${this.apiBase}/auth/logout`, {}, { withCredentials: true });
+    return this.http.post<void>(`${this.apiBase}/auth/logout`, {});
   }
 
   setupAdmin(request: SetupAdminRequest): Observable<{ id: string; username: string; email: string; createdAt: string }> {
